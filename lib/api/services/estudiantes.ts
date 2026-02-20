@@ -23,6 +23,9 @@ export const estudiantesApi = {
       `/estudiantes/getByDocumento/${numero}`
     ),
 
+      searchIndex: (query: string) =>
+    api.get<ApiResponse<EstudianteConPersona[]>>(`/estudiantes/searchIndex/${encodeURIComponent(query)}`),
+
   create: (data: CreateEstudianteInput) =>
     api.post<ApiResponse>("/estudiantes/create", data),
 
