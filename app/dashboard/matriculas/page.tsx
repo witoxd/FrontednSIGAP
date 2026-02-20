@@ -36,7 +36,7 @@ export default function MatriculasPage() {
     {
       key: "estudiante_nombre",
       header: "Estudiante",
-      render: (m) => m.estudiante_nombre || `Est. #${m.estudiante_id}`,
+      render: (m) => m.estudiante_nombre || `${m.estudiante_id}`,
     },
     {
       key: "curso_nombre",
