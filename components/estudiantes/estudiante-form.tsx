@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import useSWR from "swr"
 import { swrFetcher } from "@/lib/api/fetcher"
@@ -26,6 +26,8 @@ export function EstudianteForm({
   submitLabel = "Guardar",
 }: EstudianteFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+
   const [nombres, setNombres] = useState(initialData?.persona?.nombres ?? "")
   const [apellidoPaterno, setApellidoPaterno] = useState(
     initialData?.persona?.apellido_paterno ?? ""
@@ -49,6 +51,15 @@ export function EstudianteForm({
     initialData?.estudiante?.estado ?? "activo"
   )
 
+  useEffect(() => {
+  if (initialData?.persona?.fecha_nacimiento) {
+    const fechaISO = initialData?.persona?.fecha_nacimiento
+    const fechaFormateada = fechaISO.split("T")[0]
+    setFechaNacimiento(fechaFormateada)
+  }
+}, [initialData?.persona?.fecha_nacimiento])
+
+
   const { data: tiposDoc } = useSWR<PaginatedApiResponse<TipoDocumento>>(
     "/tipos-documento/getAll?limit=50&offset=0",
     swrFetcher
@@ -58,6 +69,7 @@ export function EstudianteForm({
     e.preventDefault()
     setIsSubmitting(true)
     try {
+      
       await onSubmit({
         persona: {
           nombres,
@@ -69,7 +81,9 @@ export function EstudianteForm({
           genero,
         },
         estudiante: { estado },
-      })
+      }
+    )
+    setTipoDocumentoId(tipoDocumentoId)
     } finally {
       setIsSubmitting(false)
     }
@@ -120,12 +134,11 @@ export function EstudianteForm({
             Tipo de documento *
           </label>
           <select
-            required
             value={tipoDocumentoId}
             onChange={(e) => setTipoDocumentoId(Number(e.target.value))}
             className={inputClass}
           >
-            <option value={0} disabled>
+            <option value={tipoDocumentoId} disabled>
               Seleccionar...
             </option>
             {tiposDoc?.data?.map((td) => (
@@ -140,7 +153,7 @@ export function EstudianteForm({
             Numero de documento *
           </label>
           <input
-            required
+             required={isSubmitting} 
             value={numeroDocumento}
             onChange={(e) => setNumeroDocumento(e.target.value)}
             placeholder="Numero de documento"
@@ -152,7 +165,7 @@ export function EstudianteForm({
             Fecha de nacimiento *
           </label>
           <input
-            required
+             required={isSubmitting}
             type="date"
             value={fechaNacimiento}
             onChange={(e) => setFechaNacimiento(e.target.value)}
