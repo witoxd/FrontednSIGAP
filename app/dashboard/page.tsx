@@ -114,7 +114,7 @@ export default function DashboardPage() {
                     <td className="px-6 py-3">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          m.estado === "activa"
+                          m.estado === "activo"
                             ? "bg-success/10 text-success"
                             : m.estado === "finalizada"
                             ? "bg-accent text-accent-foreground"
