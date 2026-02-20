@@ -68,10 +68,44 @@
   --warning-foreground: #ffffff;
 }
 
+.dark {
+  --background: #0a0f1e;
+  /* Casi negro azulado */
+  --foreground: #e8edf5;
+  --card: #111827;
+  --card-foreground: #e8edf5;
+  --popover: #111827;
+  --popover-foreground: #e8edf5;
+  --primary: #c9a84c;
+  /* Dorado del escudo — brilla en dark */
+  --primary-foreground: #0a0f1e;
+  --secondary: #1e293b;
+  --secondary-foreground: #94a3b8;
+  --muted: #1e293b;
+  --muted-foreground: #64748b;
+  --accent: #1e3a6e;
+  /* Azul marino como acento */
+  --accent-foreground: #93c5fd;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #1e293b;
+  --input: #1e293b;
+  --ring: #c9a84c;
+  --sidebar: #050810;
+  --sidebar-foreground: #94a3b8;
+  --sidebar-accent: #111827;
+  --sidebar-accent-foreground: #e8edf5;
+  --success: #22c55e;
+  --success-foreground: #0a0f1e;
+  --warning: #f59e0b;
+  --warning-foreground: #0a0f1e;
+}
+
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground antialiased;
   }
