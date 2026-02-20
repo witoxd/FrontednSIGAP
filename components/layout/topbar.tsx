@@ -68,7 +68,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
                 {user?.email}
               </p>
               <p className="text-xs text-muted-foreground capitalize">
-                {user?.roles?.join(", ")}
+                {user?.roles}
               </p>
             </div>
             <button
