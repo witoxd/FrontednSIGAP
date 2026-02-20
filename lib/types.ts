@@ -110,7 +110,7 @@ export interface Matricula {
   curso_id: number
   fecha_matricula: string
   jornada_id: number
-  estado: "activa" | "finalizada" | "retirada"
+  estado: "activo" | "finalizada" | "retirada"
   anio_egreso: number
 }
 
