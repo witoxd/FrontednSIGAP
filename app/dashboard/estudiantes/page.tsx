@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import useSWR from "swr"
 import { toast } from "sonner"
-import { Plus, Pencil, Trash2, Search } from "lucide-react"
+import { Plus, Pencil, Trash2, Search, X, Loader2 } from "lucide-react"
 import { swrFetcher } from "@/lib/api/fetcher"
 import { estudiantesApi } from "@/lib/api/services/estudiantes"
 import { DataTable, type Column } from "@/components/shared/data-table"
@@ -15,6 +15,8 @@ import type { PaginatedApiResponse, EstudianteConPersona } from "@/lib/types"
 export default function EstudiantesPage() {
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState("")
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchResults, setSearchResults] = useState<EstudianteConPersona[] | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editingData, setEditingData] = useState<EstudianteConPersona | null>(null)
@@ -57,21 +59,70 @@ export default function EstudiantesPage() {
     },
   ]
 
-  const filtered = data?.data?.filter((est) => {
-    if (!search) return true
-    const full = `${est.nombres ?? ""} ${est.apellido_paterno ?? ""} ${est.numero_documento ?? ""}`.toLowerCase()
-    return full.includes(search.toLowerCase())
-  }) ?? []
+  // Búsqueda global en el backend
+  useEffect(() => {
+    // Debounce: esperar 500ms después de que el usuario deje de escribir
+    const timeoutId = setTimeout(async () => {
+      if (search.trim().length < 3) {
+        setSearchResults(null)
+        return
+      }
+
+      setIsSearching(true)
+      try {
+        // Usar el endpoint de búsqueda de personas
+        const response = await estudiantesApi.searchIndex(search.trim())
+        
+        if (response.success && response.data) {
+          // Obtener los IDs de personas encontradas
+          const personaIds = response.data.map((p) => p.persona_id)
+          
+          // Obtener todos los estudiantes para filtrar
+          const estudiantesResponse = await estudiantesApi.getAll(1000, 0)
+          
+          if (estudiantesResponse.success && estudiantesResponse.data) {
+            // Filtrar estudiantes que coincidan con las personas encontradas
+            const estudiantesEncontrados = estudiantesResponse.data.filter((est) =>
+              personaIds.includes(est.persona_id)
+            )
+            
+            setSearchResults(estudiantesEncontrados.length > 0 ? estudiantesEncontrados : [])
+          }
+        }
+      } catch (error) {
+        console.error("Error en búsqueda:", error)
+        toast.error("Error al buscar estudiantes")
+      } finally {
+        setIsSearching(false)
+      }
+    }, 500) // Debounce de 500ms
+
+    return () => clearTimeout(timeoutId)
+  }, [search])
+
+  // Determinar qué datos mostrar
+  const displayData = searchResults !== null ? searchResults : data?.data || []
+
+  const filtered = displayData
+
+  function clearSearch() {
+    setSearch("")
+    setSearchResults(null)
+    setPage(0)
+  }
 
   async function handleCreate(formData: {
     persona: { nombres: string; [key: string]: unknown }
     estudiante: { estado?: string }
   }) {
     try {
-      await estudiantesApi.create(formData as Parameters<typeof estudiantesApi.create>[0])
+      await estudiantesApi.create(formData as unknown as Parameters<typeof estudiantesApi.create>[0])
       toast.success("Estudiante creado exitosamente")
       setModalOpen(false)
       mutate()
+      if (searchResults !== null) {
+        clearSearch()
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Error al crear estudiante")
     }
@@ -83,12 +134,15 @@ export default function EstudiantesPage() {
   }) {
     if (!editingId) return
     try {
-      await estudiantesApi.update(editingId, formData as Parameters<typeof estudiantesApi.update>[1])
+      await estudiantesApi.update(editingId, formData as unknown as Parameters<typeof estudiantesApi.update>[1])
       toast.success("Estudiante actualizado exitosamente")
       setModalOpen(false)
       setEditingId(null)
       setEditingData(null)
       mutate()
+      if (searchResults !== null) {
+        clearSearch()
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Error al actualizar")
     }
@@ -100,6 +154,9 @@ export default function EstudiantesPage() {
       await estudiantesApi.delete(id)
       toast.success("Estudiante eliminado")
       mutate()
+      if (searchResults !== null) {
+        clearSearch()
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Error al eliminar")
     }
@@ -118,6 +175,7 @@ export default function EstudiantesPage() {
   }
 
   const totalPages = data?.pagination ? Math.ceil(data.pagination.total / limit) : 0
+  const isSearchMode = searchResults !== null
 
   return (
     <div className="flex flex-col gap-6">
@@ -142,20 +200,55 @@ export default function EstudiantesPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Buscar por nombre o documento..."
+          placeholder="Buscar en todos los estudiantes (min. 3 caracteres)..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="h-10 w-full rounded-lg border border-input bg-card pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          className="h-10 w-full rounded-lg border border-input bg-card pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
+        {search && (
+          <button
+            onClick={clearSearch}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Limpiar búsqueda"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
+
+      {/* Search status */}
+      {isSearching && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span>Buscando en toda la base de datos...</span>
+        </div>
+      )}
+
+      {isSearchMode && !isSearching && (
+        <div className="flex items-center justify-between rounded-lg bg-accent/50 px-4 py-2 text-sm">
+          <span className="text-accent-foreground">
+            Se encontraron <strong>{filtered.length}</strong> resultado(s) para "{search}"
+          </span>
+          <button
+            onClick={clearSearch}
+            className="text-accent-foreground hover:text-foreground font-medium transition-colors"
+          >
+            Ver todos
+          </button>
+        </div>
+      )}
 
       {/* Table */}
       <div className="rounded-xl border border-border bg-card">
         <DataTable
           columns={columns}
           data={filtered}
-          isLoading={isLoading}
-          emptyMessage="No hay estudiantes registrados"
+          isLoading={isLoading && !isSearchMode}
+          emptyMessage={
+            isSearchMode
+              ? `No se encontraron estudiantes que coincidan con "${search}"`
+              : "No hay estudiantes registrados"
+          }
           actions={(est) => (
             <div className="flex items-center justify-end gap-1">
               <button
@@ -176,8 +269,8 @@ export default function EstudiantesPage() {
           )}
         />
 
-        {/* Pagination */}
-        {totalPages > 1 && (
+        {/* Pagination - solo visible cuando NO está en modo búsqueda */}
+        {!isSearchMode && totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-border px-6 py-3">
             <p className="text-sm text-muted-foreground">
               Pagina {page + 1} de {totalPages} ({data?.pagination.total ?? 0}{" "}
