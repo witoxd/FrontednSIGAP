@@ -41,7 +41,7 @@ export default function UsuariosPage() {
               </p>
               <p className="text-muted-foreground">
                 <span className="text-foreground font-medium">Roles:</span>{" "}
-                {user.roles.join(", ")}
+                {user.roles}
               </p>
               <p className="text-muted-foreground">
                 <span className="text-foreground font-medium">ID:</span>{" "}
