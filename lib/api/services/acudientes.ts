@@ -2,56 +2,20 @@ import { api } from "../client"
 import type {
   ApiResponse,
   PaginatedApiResponse,
+  CreateAcudienteInput
 } from "@/lib/types"
 
-// Tipos específicos para Acudientes
-export interface Acudiente {
-  acudiente_id: number
-  persona_id: number
-  parentesco: string
-}
 
-export interface AcudienteConPersona extends Acudiente {
-  persona?: {
-    persona_id: number
-    nombres: string
-    apellido_paterno: string
-    apellido_materno: string
-    numero_documento: string
-    tipo_documento_id: number
-    fecha_nacimiento: string
-    genero: string
-  }
-  nombres?: string
-  apellido_paterno?: string
-  apellido_materno?: string
-  numero_documento?: string
-}
-
-export interface CreateAcudienteInput {
-  acudiente: {
-    parentesco: string
-  }
-  persona: {
-    nombres?: string
-    apellido_paterno?: string
-    apellido_materno?: string
-    tipo_documento_id?: number
-    numero_documento: string
-    fecha_nacimiento?: string
-    genero?: string
-  }
-}
 
 export const acudientesApi = {
   getAll: (limit = 50, offset = 0) =>
-    api.get<PaginatedApiResponse<AcudienteConPersona>>("/acudientes/getAll", {
+    api.get<PaginatedApiResponse<CreateAcudienteInput>>("/acudientes/getAll", {
       limit,
       offset,
     }),
 
   getById: (id: number) =>
-    api.get<ApiResponse<AcudienteConPersona>>(`/acudientes/getById/${id}`),
+    api.get<ApiResponse<CreateAcudienteInput>>(`/acudientes/getById/${id}`),
 
   create: (data: CreateAcudienteInput) =>
     api.post<ApiResponse>("/acudientes/create", data),

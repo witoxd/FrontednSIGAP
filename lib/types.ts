@@ -55,6 +55,12 @@ export interface Usuario {
   fecha_creacion: string
 }
 
+export interface Acudiente {
+  acudiente_id: number
+  persona_id: number
+  parentesco: string
+}
+
 export interface Estudiante {
   estudiante_id: number
   persona_id: number
@@ -140,6 +146,16 @@ export interface Role {
   descripcion?: string
 }
 
+export interface Archivo {
+  archivo_id: number
+  persona_id: number
+  tipo_archivo: string
+  nombre_archivo: string
+  ruta_archivo: string
+  fecha_subida: string
+}
+
+
 // ============================================================================
 // Form / DTO Types
 // ============================================================================
@@ -171,11 +187,30 @@ export interface CreateEstudianteInput {
   }
 }
 
+export interface EgresadoConRelaciones extends CreateEgresadoInput {
+  estudiante_nombre?: string
+  numero_documento?: string
+}
+
+export interface CreateEgresadoInput {
+  estudiante_id: number
+  fecha_egreso: string
+  titulo_obtenido?: string
+  observaciones?: string
+}
+
 export interface CreateProfesorInput {
   persona: CreatePersonaInput
   profesor: {
     fecha_contratacion?: string
     estado?: string
+  }
+}
+
+export interface CreateAcudienteInput { 
+  persona: CreatePersonaInput
+  acudiente: {
+    parentesco: string
   }
 }
 
@@ -196,6 +231,13 @@ export interface CreateMatriculaInput {
     estado?: string
     anio_egreso?: number
   }
+}
+
+export interface CreateArchivoInput {
+  persona_id: number
+  tipo_archivo: string
+  nombre_archivo: string
+  ruta_archivo: string
 }
 
 // ============================================================================

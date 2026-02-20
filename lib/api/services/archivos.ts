@@ -1,23 +1,6 @@
 import { api } from "../client"
-import type { ApiResponse, PaginatedApiResponse } from "@/lib/types"
+import type { ApiResponse, PaginatedApiResponse, Archivo, CreateArchivoInput } from "@/lib/types"
 
-export interface Archivo {
-  archivo_id: number
-  persona_id: number
-  tipo_archivo: string
-  nombre_archivo: string
-  ruta_archivo: string
-  fecha_subida: string
-  tamaño_bytes?: number
-}
-
-export interface CreateArchivoInput {
-  persona_id: number
-  tipo_archivo: string
-  nombre_archivo: string
-  ruta_archivo: string
-  tamaño_bytes?: number
-}
 
 export const archivosApi = {
   getAll: (limit = 50, offset = 0) =>
