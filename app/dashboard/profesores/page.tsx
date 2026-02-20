@@ -3,13 +3,14 @@
 import { useState } from "react"
 import useSWR from "swr"
 import { toast } from "sonner"
-import { Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react"
+import { Plus, Pencil, Trash2, Search } from "lucide-react"
 import { swrFetcher } from "@/lib/api/fetcher"
 import { profesoresApi } from "@/lib/api/services/profesores"
 import { DataTable, type Column } from "@/components/shared/data-table"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { Modal } from "@/components/shared/modal"
-import type { PaginatedApiResponse, ProfesorConPersona, TipoDocumento, CreatePersonaInput } from "@/lib/types"
+import { ProfesorForm } from "@/components/profesores/profesor-form"
+import type { PaginatedApiResponse, ProfesorConPersona } from "@/lib/types"
 
 export default function ProfesoresPage() {
   const [page, setPage] = useState(0)
@@ -61,7 +62,7 @@ export default function ProfesoresPage() {
 
   async function handleCreate(formData: {
     persona: CreatePersonaInput
-    profesor: { estado?: string }
+    profesor: { estado?: string; fecha_contratacion?: string }
   }) {
     try {
       await profesoresApi.create(formData as Parameters<typeof profesoresApi.create>[0])
@@ -75,7 +76,7 @@ export default function ProfesoresPage() {
 
   async function handleUpdate(formData: {
     persona: CreatePersonaInput
-    profesor: { estado?: string }
+    profesor: { estado?: string; fecha_contratacion?: string }
   }) {
     if (!editingId) return
     try {
@@ -188,124 +189,30 @@ export default function ProfesoresPage() {
         title={editingId ? "Editar profesor" : "Nuevo profesor"}
       >
         <ProfesorForm
-          initialData={editingData}
+          initialData={
+            editingData
+              ? {
+                  persona: {
+                    nombres: editingData.nombres,
+                    apellido_paterno: editingData.apellido_paterno,
+                    apellido_materno: editingData.apellido_materno,
+                    tipo_documento_id: editingData.tipo_documento_id,
+                    numero_documento: editingData.numero_documento,
+                    fecha_nacimiento: editingData.persona?.fecha_nacimiento,
+                    genero: editingData.persona?.genero as "Masculino" | "Femenino" | "Otro",
+                  },
+                  profesor: {
+                    estado: editingData.estado,
+                    fecha_contratacion: editingData.fecha_contratacion,
+                  },
+                }
+              : undefined
+          }
           onSubmit={editingId ? handleUpdate : handleCreate}
           onCancel={() => { setModalOpen(false); setEditingId(null); setEditingData(null) }}
           submitLabel={editingId ? "Actualizar" : "Crear profesor"}
         />
       </Modal>
     </div>
-  )
-}
-
-function ProfesorForm({
-  initialData,
-  onSubmit,
-  onCancel,
-  submitLabel = "Guardar",
-}: {
-  initialData?: ProfesorConPersona | null
-  onSubmit: (data: { persona: CreatePersonaInput; profesor: { estado?: string } }) => Promise<void>
-  onCancel: () => void
-  submitLabel?: string
-}) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [nombres, setNombres] = useState(initialData?.nombres ?? "")
-  const [apellidoPaterno, setApellidoPaterno] = useState(initialData?.apellido_paterno ?? "")
-  const [apellidoMaterno, setApellidoMaterno] = useState(initialData?.apellido_materno ?? "")
-  const [tipoDocumentoId, setTipoDocumentoId] = useState(initialData?.persona?.tipo_documento_id ?? 0)
-  const [numeroDocumento, setNumeroDocumento] = useState(initialData?.numero_documento ?? "")
-  const [fechaNacimiento, setFechaNacimiento] = useState(initialData?.persona?.fecha_nacimiento ?? "")
-  const [genero, setGenero] = useState<"Masculino" | "Femenino" | "Otro">(
-    (initialData?.persona?.genero as "Masculino" | "Femenino" | "Otro") ?? "Masculino"
-  )
-  const [estado, setEstado] = useState(initialData?.estado ?? "activo")
-
-  const { data: tiposDoc } = useSWR<PaginatedApiResponse<TipoDocumento>>(
-    "/tipos-documento/getAll?limit=50&offset=0",
-    swrFetcher
-  )
-
-  const inputClass =
-    "h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setIsSubmitting(true)
-    try {
-      await onSubmit({
-        persona: {
-          nombres,
-          apellido_paterno: apellidoPaterno || undefined,
-          apellido_materno: apellidoMaterno || undefined,
-          tipo_documento_id: tipoDocumentoId,
-          numero_documento: numeroDocumento,
-          fecha_nacimiento: fechaNacimiento,
-          genero,
-        },
-        profesor: { estado },
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-foreground">Nombres *</label>
-          <input required value={nombres} onChange={(e) => setNombres(e.target.value)} placeholder="Nombres completos" className={inputClass} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-foreground">Apellido paterno</label>
-          <input value={apellidoPaterno} onChange={(e) => setApellidoPaterno(e.target.value)} placeholder="Apellido paterno" className={inputClass} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-foreground">Apellido materno</label>
-          <input value={apellidoMaterno} onChange={(e) => setApellidoMaterno(e.target.value)} placeholder="Apellido materno" className={inputClass} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-foreground">Tipo de documento *</label>
-          <select required value={tipoDocumentoId} onChange={(e) => setTipoDocumentoId(Number(e.target.value))} className={inputClass}>
-            <option value={0} disabled>Seleccionar...</option>
-            {tiposDoc?.data?.map((td) => (
-              <option key={td.tipo_documento_id} value={td.tipo_documento_id}>{td.nombre_documento}</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-foreground">Numero de documento *</label>
-          <input required value={numeroDocumento} onChange={(e) => setNumeroDocumento(e.target.value)} placeholder="Numero de documento" className={inputClass} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-foreground">Fecha de nacimiento *</label>
-          <input required type="date" value={fechaNacimiento} onChange={(e) => setFechaNacimiento(e.target.value)} className={inputClass} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-foreground">Genero *</label>
-          <select required value={genero} onChange={(e) => setGenero(e.target.value as "Masculino" | "Femenino" | "Otro")} className={inputClass}>
-            <option value="Masculino">Masculino</option>
-            <option value="Femenino">Femenino</option>
-            <option value="Otro">Otro</option>
-          </select>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-foreground">Estado</label>
-          <select value={estado} onChange={(e) => setEstado(e.target.value)} className={inputClass}>
-            <option value="activo">Activo</option>
-            <option value="inactivo">Inactivo</option>
-          </select>
-        </div>
-      </div>
-      <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
-        <button type="button" onClick={onCancel} className="h-10 rounded-lg border border-border px-4 text-sm font-medium text-foreground hover:bg-muted transition-colors">
-          Cancelar
-        </button>
-        <button type="submit" disabled={isSubmitting} className="flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors">
-          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : submitLabel}
-        </button>
-      </div>
-    </form>
   )
 }

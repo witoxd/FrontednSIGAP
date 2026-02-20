@@ -5,25 +5,25 @@ import { Loader2 } from "lucide-react"
 import { PersonaForm, type PersonaFormData } from "@/components/forms/persona-form"
 import type { CreatePersonaInput } from "@/lib/types"
 
-interface EstudianteFormProps {
+interface AdministrativoFormProps {
   initialData?: {
     persona?: Partial<CreatePersonaInput>
-    estudiante?: { estado?: string; fecha_ingreso?: string }
+    administrativo?: { cargo?: string; fecha_contratacion?: string; estado?: boolean }
   }
   onSubmit: (data: {
     persona: CreatePersonaInput
-    estudiante: { estado?: string; fecha_ingreso?: string }
+    administrativo: { cargo: string; fecha_contratacion?: string; estado?: boolean }
   }) => Promise<void>
   onCancel: () => void
   submitLabel?: string
 }
 
-export function EstudianteForm({
+export function AdministrativoForm({
   initialData,
   onSubmit,
   onCancel,
   submitLabel = "Guardar",
-}: EstudianteFormProps) {
+}: AdministrativoFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [personaData, setPersonaData] = useState<PersonaFormData>({
     nombres: initialData?.persona?.nombres ?? "",
@@ -34,11 +34,14 @@ export function EstudianteForm({
     fecha_nacimiento: initialData?.persona?.fecha_nacimiento ?? "",
     genero: initialData?.persona?.genero ?? "Masculino",
   })
-  const [estado, setEstado] = useState(
-    initialData?.estudiante?.estado ?? "activo"
+  const [cargo, setCargo] = useState(
+    initialData?.administrativo?.cargo ?? ""
   )
-  const [fechaIngreso, setFechaIngreso] = useState(
-    initialData?.estudiante?.fecha_ingreso ?? ""
+  const [fechaContratacion, setFechaContratacion] = useState(
+    initialData?.administrativo?.fecha_contratacion ?? ""
+  )
+  const [estado, setEstado] = useState(
+    initialData?.administrativo?.estado ?? true
   )
 
   async function handleSubmit(e: React.FormEvent) {
@@ -55,9 +58,10 @@ export function EstudianteForm({
           fecha_nacimiento: personaData.fecha_nacimiento,
           genero: personaData.genero,
         },
-        estudiante: {
+        administrativo: {
+          cargo,
+          fecha_contratacion: fechaContratacion || undefined,
           estado,
-          fecha_ingreso: fechaIngreso || undefined,
         },
       })
     } finally {
@@ -82,38 +86,46 @@ export function EstudianteForm({
         />
       </div>
 
-      {/* Sección de Datos del Estudiante */}
+      {/* Sección de Datos del Administrativo */}
       <div className="flex flex-col gap-4">
         <h3 className="text-sm font-semibold text-foreground border-b border-border pb-2">
-          Datos del Estudiante
+          Datos del Administrativo
         </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-foreground">Cargo *</label>
+            <input
+              required
+              value={cargo}
+              onChange={(e) => setCargo(e.target.value)}
+              placeholder="Cargo del administrativo"
+              className={inputClass}
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-foreground">
+              Fecha de contratación
+            </label>
+            <input
+              type="date"
+              value={fechaContratacion}
+              onChange={(e) => setFechaContratacion(e.target.value)}
+              className={inputClass}
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">Estado</label>
             <select
-              value={estado}
-              onChange={(e) => setEstado(e.target.value)}
+              value={estado ? "activo" : "inactivo"}
+              onChange={(e) => setEstado(e.target.value === "activo")}
               className={inputClass}
               disabled={isSubmitting}
             >
               <option value="activo">Activo</option>
               <option value="inactivo">Inactivo</option>
-              <option value="graduado">Graduado</option>
-              <option value="suspendido">Suspendido</option>
-              <option value="expulsado">Expulsado</option>
             </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">
-              Fecha de ingreso
-            </label>
-            <input
-              type="date"
-              value={fechaIngreso}
-              onChange={(e) => setFechaIngreso(e.target.value)}
-              className={inputClass}
-              disabled={isSubmitting}
-            />
           </div>
         </div>
       </div>

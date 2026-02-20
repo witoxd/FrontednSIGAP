@@ -5,25 +5,35 @@ import { Loader2 } from "lucide-react"
 import { PersonaForm, type PersonaFormData } from "@/components/forms/persona-form"
 import type { CreatePersonaInput } from "@/lib/types"
 
-interface EstudianteFormProps {
+interface AcudienteFormProps {
   initialData?: {
     persona?: Partial<CreatePersonaInput>
-    estudiante?: { estado?: string; fecha_ingreso?: string }
+    acudiente?: {
+      parentesco?: string
+      telefono_adicional?: string
+      direccion?: string
+      ocupacion?: string
+    }
   }
   onSubmit: (data: {
     persona: CreatePersonaInput
-    estudiante: { estado?: string; fecha_ingreso?: string }
+    acudiente: {
+      parentesco: string
+      telefono_adicional?: string
+      direccion?: string
+      ocupacion?: string
+    }
   }) => Promise<void>
   onCancel: () => void
   submitLabel?: string
 }
 
-export function EstudianteForm({
+export function AcudienteForm({
   initialData,
   onSubmit,
   onCancel,
   submitLabel = "Guardar",
-}: EstudianteFormProps) {
+}: AcudienteFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [personaData, setPersonaData] = useState<PersonaFormData>({
     nombres: initialData?.persona?.nombres ?? "",
@@ -34,11 +44,17 @@ export function EstudianteForm({
     fecha_nacimiento: initialData?.persona?.fecha_nacimiento ?? "",
     genero: initialData?.persona?.genero ?? "Masculino",
   })
-  const [estado, setEstado] = useState(
-    initialData?.estudiante?.estado ?? "activo"
+  const [parentesco, setParentesco] = useState(
+    initialData?.acudiente?.parentesco ?? ""
   )
-  const [fechaIngreso, setFechaIngreso] = useState(
-    initialData?.estudiante?.fecha_ingreso ?? ""
+  const [telefonoAdicional, setTelefonoAdicional] = useState(
+    initialData?.acudiente?.telefono_adicional ?? ""
+  )
+  const [direccion, setDireccion] = useState(
+    initialData?.acudiente?.direccion ?? ""
+  )
+  const [ocupacion, setOcupacion] = useState(
+    initialData?.acudiente?.ocupacion ?? ""
   )
 
   async function handleSubmit(e: React.FormEvent) {
@@ -55,9 +71,11 @@ export function EstudianteForm({
           fecha_nacimiento: personaData.fecha_nacimiento,
           genero: personaData.genero,
         },
-        estudiante: {
-          estado,
-          fecha_ingreso: fechaIngreso || undefined,
+        acudiente: {
+          parentesco,
+          telefono_adicional: telefonoAdicional || undefined,
+          direccion: direccion || undefined,
+          ocupacion: ocupacion || undefined,
         },
       })
     } finally {
@@ -82,35 +100,65 @@ export function EstudianteForm({
         />
       </div>
 
-      {/* Sección de Datos del Estudiante */}
+      {/* Sección de Datos del Acudiente */}
       <div className="flex flex-col gap-4">
         <h3 className="text-sm font-semibold text-foreground border-b border-border pb-2">
-          Datos del Estudiante
+          Datos del Acudiente
         </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">Estado</label>
+            <label className="text-sm font-medium text-foreground">Parentesco *</label>
             <select
-              value={estado}
-              onChange={(e) => setEstado(e.target.value)}
+              required
+              value={parentesco}
+              onChange={(e) => setParentesco(e.target.value)}
               className={inputClass}
               disabled={isSubmitting}
             >
-              <option value="activo">Activo</option>
-              <option value="inactivo">Inactivo</option>
-              <option value="graduado">Graduado</option>
-              <option value="suspendido">Suspendido</option>
-              <option value="expulsado">Expulsado</option>
+              <option value="" disabled>
+                Seleccionar...
+              </option>
+              <option value="Padre">Padre</option>
+              <option value="Madre">Madre</option>
+              <option value="Hermano">Hermano</option>
+              <option value="Hermana">Hermana</option>
+              <option value="Tio">Tío</option>
+              <option value="Tia">Tía</option>
+              <option value="Abuelo">Abuelo</option>
+              <option value="Abuela">Abuela</option>
+              <option value="Tutor Legal">Tutor Legal</option>
+              <option value="Otro">Otro</option>
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">
-              Fecha de ingreso
+              Teléfono adicional
             </label>
             <input
-              type="date"
-              value={fechaIngreso}
-              onChange={(e) => setFechaIngreso(e.target.value)}
+              type="tel"
+              value={telefonoAdicional}
+              onChange={(e) => setTelefonoAdicional(e.target.value)}
+              placeholder="Teléfono adicional"
+              className={inputClass}
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <label className="text-sm font-medium text-foreground">Dirección</label>
+            <input
+              value={direccion}
+              onChange={(e) => setDireccion(e.target.value)}
+              placeholder="Dirección completa"
+              className={inputClass}
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-foreground">Ocupación</label>
+            <input
+              value={ocupacion}
+              onChange={(e) => setOcupacion(e.target.value)}
+              placeholder="Ocupación del acudiente"
               className={inputClass}
               disabled={isSubmitting}
             />
