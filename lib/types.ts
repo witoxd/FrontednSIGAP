@@ -240,6 +240,14 @@ export interface CreateArchivoInput {
   ruta_archivo: string
 }
 
+export interface CreateTipoArchivoInput {
+  tipo_archivo_id: number
+  nombre: string
+  descripcion?: string
+  extensiones_permitidas?: string[]
+  activo?: boolean
+}
+
 // ============================================================================
 // Auth
 // ============================================================================
