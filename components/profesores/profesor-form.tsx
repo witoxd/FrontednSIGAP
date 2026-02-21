@@ -5,25 +5,25 @@ import { Loader2 } from "lucide-react"
 import { PersonaForm, type PersonaFormData } from "@/components/forms/persona-form"
 import type { CreatePersonaInput } from "@/lib/types"
 
-interface EstudianteFormProps {
+interface ProfesorFormProps {
   initialData?: {
     persona?: Partial<CreatePersonaInput>
-    estudiante?: { estado?: string; fecha_ingreso?: string }
+    profesor?: { estado?: string; fecha_contratacion?: string }
   }
   onSubmit: (data: {
     persona: CreatePersonaInput
-    estudiante: { estado?: string; fecha_ingreso?: string }
+    profesor: { estado?: string; fecha_contratacion?: string }
   }) => Promise<void>
   onCancel: () => void
   submitLabel?: string
 }
 
-export function EstudianteForm({
+export function ProfesorForm({
   initialData,
   onSubmit,
   onCancel,
   submitLabel = "Guardar",
-}: EstudianteFormProps) {
+}: ProfesorFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [personaData, setPersonaData] = useState<PersonaFormData>({
     nombres: initialData?.persona?.nombres ?? "",
@@ -35,10 +35,10 @@ export function EstudianteForm({
     genero: initialData?.persona?.genero ?? "Masculino",
   })
   const [estado, setEstado] = useState(
-    initialData?.estudiante?.estado ?? "activo"
+    initialData?.profesor?.estado ?? "activo"
   )
-  const [fechaIngreso, setFechaIngreso] = useState(
-    initialData?.estudiante?.fecha_ingreso ?? ""
+  const [fechaContratacion, setFechaContratacion] = useState(
+    initialData?.profesor?.fecha_contratacion ?? ""
   )
 
   async function handleSubmit(e: React.FormEvent) {
@@ -55,9 +55,9 @@ export function EstudianteForm({
           fecha_nacimiento: personaData.fecha_nacimiento,
           genero: personaData.genero,
         },
-        estudiante: {
+        profesor: {
           estado,
-          fecha_ingreso: fechaIngreso || undefined,
+          fecha_contratacion: fechaContratacion || undefined,
         },
       })
     } finally {
@@ -82,10 +82,10 @@ export function EstudianteForm({
         />
       </div>
 
-      {/* Sección de Datos del Estudiante */}
+      {/* Sección de Datos del Profesor */}
       <div className="flex flex-col gap-4">
         <h3 className="text-sm font-semibold text-foreground border-b border-border pb-2">
-          Datos del Estudiante
+          Datos del Profesor
         </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
@@ -98,19 +98,16 @@ export function EstudianteForm({
             >
               <option value="activo">Activo</option>
               <option value="inactivo">Inactivo</option>
-              <option value="graduado">Graduado</option>
-              <option value="suspendido">Suspendido</option>
-              <option value="expulsado">Expulsado</option>
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">
-              Fecha de ingreso
+              Fecha de contratación
             </label>
             <input
               type="date"
-              value={fechaIngreso}
-              onChange={(e) => setFechaIngreso(e.target.value)}
+              value={fechaContratacion}
+              onChange={(e) => setFechaContratacion(e.target.value)}
               className={inputClass}
               disabled={isSubmitting}
             />
