@@ -2,11 +2,18 @@
 
 import { useState, useRef, useCallback } from "react"
 import { Upload, X, User, Loader2, CheckCircle, AlertCircle } from "lucide-react"
-import { TIPO_ARCHIVO_IDS, FOTO_PERFIL_CONFIG } from "@/lib/constants/archivo-tipos"
 import { cn } from "@/lib/utils"
+
+// Configuración de foto de perfil
+const FOTO_PERFIL_CONFIG = {
+  maxSize: 5 * 1024 * 1024, // 5MB
+  acceptedTypes: ["image/jpeg", "image/png", "image/webp"],
+  acceptedExtensions: [".jpg", ".jpeg", ".png", ".webp"],
+}
 
 interface ProfilePhotoUploaderProps {
   personaId?: number
+  tipoArchivoId: number // ID del tipo de archivo para foto de perfil (dinámico desde API)
   currentPhotoUrl?: string
   onPhotoChange?: (file: File | null) => void
   className?: string
@@ -16,6 +23,7 @@ interface ProfilePhotoUploaderProps {
 
 export function ProfilePhotoUploader({
   personaId,
+  tipoArchivoId,
   currentPhotoUrl,
   onPhotoChange,
   className,
@@ -123,7 +131,7 @@ export function ProfilePhotoUploader({
       const formData = new FormData()
       formData.append("archivos", selectedFile)
       formData.append("persona_id", personaId.toString())
-      formData.append("tipo_archivo_id", TIPO_ARCHIVO_IDS.FOTO_PERFIL.toString())
+      formData.append("tipo_archivo_id", tipoArchivoId.toString())
       formData.append("descripcion", "Foto de perfil")
 
       const response = await fetch("/api/archivos/bulkCreate", {

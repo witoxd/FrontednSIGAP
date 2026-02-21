@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Save, Loader2 } from "lucide-react"
 import { ProfilePhotoUploader } from "@/components/shared/profile-photo-uploader"
-import { estudiantesService } from "@/lib/api/services/estudiantes"
-import { TIPO_ARCHIVO_IDS } from "@/lib/constants/archivo-tipos"
+import { estudiantesApi } from "@/lib/api/services/estudiantes"
+import { tiposArchivosApi } from "@/lib/api/services/tipos-archivos"
 import type { CreateEstudianteInput } from "@/lib/types"
 
 export default function NuevoEstudiantePage() {
@@ -15,6 +15,27 @@ export default function NuevoEstudiantePage() {
   const [error, setError] = useState<string | null>(null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [personaId, setPersonaId] = useState<number | null>(null)
+  const [fotoPerfilTipoId, setFotoPerfilTipoId] = useState<number>(1) // Default 1
+
+  // Cargar el tipo de archivo para foto de perfil
+  useEffect(() => {
+    async function loadTipoArchivo() {
+      try {
+        const response = await tiposArchivosApi.getAll(50, 0)
+        // Buscar el tipo de archivo "Foto de Perfil" o similar
+        const fotoPerfil = response.data.find((tipo: any) => 
+          tipo.nombre?.toLowerCase().includes("foto") || 
+          tipo.nombre?.toLowerCase().includes("perfil")
+        )
+        if (fotoPerfil) {
+          setFotoPerfilTipoId(fotoPerfil.tipo_archivo_id)
+        }
+      } catch (err) {
+        console.error("Error al cargar tipos de archivo:", err)
+      }
+    }
+    loadTipoArchivo()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -44,7 +65,7 @@ export default function NuevoEstudiantePage() {
       }
 
       // Crear estudiante
-      const response = await estudiantesService.create(input)
+      const response = await estudiantesApi.create(input)
       const nuevoEstudianteId = response.data.estudiante_id
       const nuevaPersonaId = response.data.persona_id
 
@@ -53,7 +74,7 @@ export default function NuevoEstudiantePage() {
         const photoFormData = new FormData()
         photoFormData.append("archivos", photoFile)
         photoFormData.append("persona_id", nuevaPersonaId.toString())
-        photoFormData.append("tipo_archivo_id", TIPO_ARCHIVO_IDS.FOTO_PERFIL.toString())
+        photoFormData.append("tipo_archivo_id", fotoPerfilTipoId.toString())
         photoFormData.append("descripcion", "Foto de perfil")
 
         await fetch("/api/archivos/bulkCreate", {
@@ -96,6 +117,7 @@ export default function NuevoEstudiantePage() {
         <div className="bg-card border rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4">Foto de Perfil</h2>
           <ProfilePhotoUploader
+            tipoArchivoId={fotoPerfilTipoId}
             onPhotoChange={setPhotoFile}
             disabled={isSubmitting}
           />
