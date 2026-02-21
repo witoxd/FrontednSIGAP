@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context"
 import { GraduationCap, Eye, EyeOff, Loader2 } from "lucide-react"
-
+import { AnimatedTitle } from "../AnimatedTitle"
 function LoginForm() {
   const { login } = useAuth()
   const router = useRouter()
@@ -37,38 +37,34 @@ function LoginForm() {
   return (
     <div className="flex min-h-screen">
       {/* Left panel */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center bg-sidebar text-sidebar-foreground p-12">
-        <div className="flex flex-col items-center gap-6 max-w-md text-center">
-          <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-primary">
-            <GraduationCap className="w-10 h-10 text-primary-foreground" />
-          </div>
-          <h1 className="text-3xl font-bold text-sidebar-accent-foreground">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        {/* Imagen de fondo */}
+        <img
+          src="/Foto_Frontal_Liceo_Almirante_Padilla.webp"
+          alt="Institución Educativa Almirante Padilla"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+
+        {/* Overlay oscuro con tinte azul marino (como tu --sidebar) */}
+        <div className="absolute inset-0 bg-sidebar/80" />
+
+        {/* Contenido encima del overlay */}
+        <div className="relative z-10 flex flex-col items-center justify-center w-full h-full gap-4 text-center px-12">
+          <img
+            src="/logo_liceo.ico"
+            alt="Logo IEAP"
+            className="w-24 h-24 object-contain drop-shadow-lg grayscale brightness-150"
+          />
+          <h1 className="text-5xl font-bold tracking-widest drop-shadow-md animate-shimmer">
             SIGAP
           </h1>
-          <p className="text-lg leading-relaxed text-sidebar-foreground">
-            Sistema de Gestion Academica y de Personal. Administra
-            estudiantes, profesores, cursos y matriculas de manera eficiente.
+          {/* <h1 className="text-5xl font-bold tracking-widest text-white drop-shadow-md
+               animate-in fade-in slide-in-from-bottom-4 duration-700">
+            SIGAP
+          </h1> */}
+          <p className="text-sm text-white/60 tracking-widest uppercase">
+            Sistema de informacion y gestion almirante padilla
           </p>
-          <div className="mt-8 grid grid-cols-3 gap-6 text-center">
-            <div>
-              <p className="text-2xl font-bold text-sidebar-accent-foreground">
-                100%
-              </p>
-              <p className="text-sm text-sidebar-foreground">Digital</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-sidebar-accent-foreground">
-                Seguro
-              </p>
-              <p className="text-sm text-sidebar-foreground">Encriptado</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-sidebar-accent-foreground">
-                Rapido
-              </p>
-              <p className="text-sm text-sidebar-foreground">Eficiente</p>
-            </div>
-          </div>
         </div>
       </div>
 
