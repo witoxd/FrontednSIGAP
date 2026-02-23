@@ -5,8 +5,8 @@ import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Save, Loader2 } from "lucide-react"
 import { ProfilePhotoUploader } from "@/components/shared/profile-photo-uploader"
-import { estudiantesService } from "@/lib/api/services/estudiantes"
-import { TIPO_ARCHIVO_IDS } from "@/lib/constants/archivo-tipos"
+import { estudiantesApi } from "@/lib/api/services/estudiantes"
+import { tiposArchivosApi } from "@/lib/api/services/tipos-archivos"
 import type { Estudiante, UpdateEstudianteInput } from "@/lib/types"
 
 export default function EditarEstudiantePage() {
@@ -19,11 +19,12 @@ export default function EditarEstudiantePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [fotoPerfilTipoId, setFotoPerfilTipoId] = useState<number>(1)
 
   useEffect(() => {
     const fetchEstudiante = async () => {
       try {
-        const response = await estudiantesService.getById(estudianteId)
+        const response = await estudiantesApi.getById(estudianteId)
         setEstudiante(response.data)
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error al cargar el estudiante")
@@ -34,6 +35,24 @@ export default function EditarEstudiantePage() {
 
     fetchEstudiante()
   }, [estudianteId])
+
+  useEffect(() => {
+    async function loadTipoArchivo() {
+      try {
+        const response = await tiposArchivosApi.getAll(50, 0)
+        const fotoPerfil = response.data.find((tipo: any) => 
+          tipo.nombre?.toLowerCase().includes("foto") || 
+          tipo.nombre?.toLowerCase().includes("perfil")
+        )
+        if (fotoPerfil) {
+          setFotoPerfilTipoId(fotoPerfil.tipo_archivo_id)
+        }
+      } catch (err) {
+        console.error("Error al cargar tipos de archivo:", err)
+      }
+    }
+    loadTipoArchivo()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -63,14 +82,14 @@ export default function EditarEstudiantePage() {
       }
 
       // Actualizar estudiante
-      await estudiantesService.update(estudianteId, input)
+      await estudiantesApi.update(estudianteId, input)
 
       // Si hay nueva foto, subirla
       if (photoFile && estudiante?.persona_id) {
         const photoFormData = new FormData()
         photoFormData.append("archivos", photoFile)
         photoFormData.append("persona_id", estudiante.persona_id.toString())
-        photoFormData.append("tipo_archivo_id", TIPO_ARCHIVO_IDS.FOTO_PERFIL.toString())
+        photoFormData.append("tipo_archivo_id", fotoPerfilTipoId.toString())
         photoFormData.append("descripcion", "Foto de perfil")
 
         await fetch("/api/archivos/bulkCreate", {
@@ -140,6 +159,7 @@ export default function EditarEstudiantePage() {
           <h2 className="text-xl font-semibold mb-4">Foto de Perfil</h2>
           <ProfilePhotoUploader
             personaId={estudiante.persona_id}
+            tipoArchivoId={fotoPerfilTipoId}
             onPhotoChange={setPhotoFile}
             disabled={isSubmitting}
           />
