@@ -9,7 +9,7 @@ export interface ApiResponse<T = unknown> {
   errors?: unknown[]
 }
 
-export interface PaginatedApiResponse<T = unknown> {
+export interface PaginatedApiResponse<T> {
   success: boolean
   data: T[]
   pagination: {
@@ -75,6 +75,7 @@ export interface EstudianteConPersona extends Estudiante {
   apellido_materno?: string
   numero_documento?: string
   tipo_documento_id?: number
+  tipo_documento?: string
   fecha_nacimiento?: string
   genero?: string
 }
@@ -153,6 +154,14 @@ export interface Archivo {
   nombre_archivo: string
   ruta_archivo: string
   fecha_subida: string
+}
+
+export interface TipoArchivo {
+  tipo_archivo_id: number
+  nombre: string
+  descripcion?: string
+  extensiones_permitidas?: string[]
+  activo?: boolean
 }
 
 
@@ -238,6 +247,18 @@ export interface CreateArchivoInput {
   tipo_archivo: string
   nombre_archivo: string
   ruta_archivo: string
+}
+
+export interface BulkCreateArchivoMetadata {
+  tipo_archivo_id: number
+  descripcion: string
+}
+
+export interface BulkCreateArchivoResponse {
+  success: boolean
+  message: string
+  total: number
+  data: Archivo[]
 }
 
 export interface CreateTipoArchivoInput {

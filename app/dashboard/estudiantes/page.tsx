@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import { toast } from "sonner"
 import { Plus, Pencil, Trash2, Search, X, Loader2 } from "lucide-react"
@@ -8,18 +9,14 @@ import { swrFetcher } from "@/lib/api/fetcher"
 import { estudiantesApi } from "@/lib/api/services/estudiantes"
 import { DataTable, type Column } from "@/components/shared/data-table"
 import { StatusBadge } from "@/components/shared/status-badge"
-import { Modal } from "@/components/shared/modal"
-import { EstudianteForm } from "@/components/estudiantes/estudiante-form"
 import type { PaginatedApiResponse, EstudianteConPersona } from "@/lib/types"
 
 export default function EstudiantesPage() {
+  const router = useRouter()
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState("")
   const [isSearching, setIsSearching] = useState(false)
   const [searchResults, setSearchResults] = useState<EstudianteConPersona[] | null>(null)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [editingData, setEditingData] = useState<EstudianteConPersona | null>(null)
   const limit = 20
 
   const { data, isLoading, mutate } = useSWR<PaginatedApiResponse<EstudianteConPersona>>(
@@ -111,42 +108,7 @@ export default function EstudiantesPage() {
     setPage(0)
   }
 
-  async function handleCreate(formData: {
-    persona: { nombres: string; [key: string]: unknown }
-    estudiante: { estado?: string }
-  }) {
-    try {
-      await estudiantesApi.create(formData as unknown as Parameters<typeof estudiantesApi.create>[0])
-      toast.success("Estudiante creado exitosamente")
-      setModalOpen(false)
-      mutate()
-      if (searchResults !== null) {
-        clearSearch()
-      }
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Error al crear estudiante")
-    }
-  }
 
-  async function handleUpdate(formData: {
-    persona: { nombres: string; [key: string]: unknown }
-    estudiante: { estado?: string }
-  }) {
-    if (!editingId) return
-    try {
-      await estudiantesApi.update(editingId, formData as unknown as Parameters<typeof estudiantesApi.update>[1])
-      toast.success("Estudiante actualizado exitosamente")
-      setModalOpen(false)
-      setEditingId(null)
-      setEditingData(null)
-      mutate()
-      if (searchResults !== null) {
-        clearSearch()
-      }
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Error al actualizar")
-    }
-  }
 
   async function handleDelete(id: number) {
     if (!confirm("Esta seguro de eliminar este estudiante?")) return
@@ -162,16 +124,12 @@ export default function EstudiantesPage() {
     }
   }
 
-  function openEdit(est: EstudianteConPersona) {
-    setEditingId(est.estudiante_id)
-    setEditingData(est)
-    setModalOpen(true)
+  function handleEdit(est: EstudianteConPersona) {
+    router.push(`/dashboard/estudiantes/${est.estudiante_id}/editar`)
   }
 
-  function openCreate() {
-    setEditingId(null)
-    setEditingData(null)
-    setModalOpen(true)
+  function handleCreate() {
+    router.push("/dashboard/estudiantes/nuevo")
   }
 
   const totalPages = data?.pagination ? Math.ceil(data.pagination.total / limit) : 0
@@ -187,7 +145,7 @@ export default function EstudiantesPage() {
           </p>
         </div>
         <button
-          onClick={openCreate}
+          onClick={handleCreate}
           className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -252,7 +210,7 @@ export default function EstudiantesPage() {
           actions={(est) => (
             <div className="flex items-center justify-end gap-1">
               <button
-                onClick={() => openEdit(est)}
+                onClick={() => handleEdit(est)}
                 className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 aria-label="Editar estudiante"
               >
@@ -296,42 +254,6 @@ export default function EstudiantesPage() {
         )}
       </div>
 
-      {/* Modal */}
-      <Modal
-        open={modalOpen}
-        onClose={() => {
-          setModalOpen(false)
-          setEditingId(null)
-          setEditingData(null)
-        }}
-        title={editingId ? "Editar estudiante" : "Nuevo estudiante"}
-      >
-        <EstudianteForm
-          initialData={
-            editingData
-              ? {
-                  persona: {
-                    nombres: editingData.nombres,
-                    apellido_paterno: editingData.apellido_paterno,
-                    apellido_materno: editingData.apellido_materno,
-                    tipo_documento_id: editingData.tipo_documento_id,
-                    numero_documento: editingData.numero_documento,
-                    fecha_nacimiento: editingData.fecha_nacimiento,
-                    genero: editingData.genero as "Masculino" | "Femenino" | "Otro",
-                  },
-                  estudiante: { estado: editingData.estado },
-                }
-              : undefined
-          }
-          onSubmit={editingId ? handleUpdate : handleCreate}
-          onCancel={() => {
-            setModalOpen(false)
-            setEditingId(null)
-            setEditingData(null)
-          }}
-          submitLabel={editingId ? "Actualizar" : "Crear estudiante"}
-        />
-      </Modal>
     </div>
   )
 }

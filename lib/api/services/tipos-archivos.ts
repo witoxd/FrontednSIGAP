@@ -2,19 +2,15 @@ import { api } from "../client"
 import type {
   ApiResponse,
   PaginatedApiResponse,
-  ProfesorConPersona,
   CreateTipoArchivoInput
 } from "@/lib/types"
 
 export const tiposArchivosApi = {
-  getAll: (limit = 50, offset = 0) =>
-    api.get<PaginatedApiResponse<ProfesorConPersona>>("/tipos-archivos/getAll", {
-      limit,
-      offset,
-    }),
+  getAll: () =>
+    api.get<PaginatedApiResponse<CreateTipoArchivoInput>>("/tipos-archivos/getAll"),
 
   getById: (id: number) =>
-    api.get<ApiResponse<ProfesorConPersona>>(`/tipos-archivos/getById/${id}`),
+    api.get<ApiResponse<CreateTipoArchivoInput>>(`/tipos-archivos/getById/${id}`),
 
   create: (data: CreateTipoArchivoInput) =>
     api.post<ApiResponse>("/tipos-archivos/create", data),

@@ -14,7 +14,7 @@ export const estudiantesApi = {
     }),
 
   getById: (id: number) =>
-    api.get<ApiResponse<{ persona: unknown; estudiante: EstudianteConPersona }>>(
+    api.get<ApiResponse<{ estudiante: EstudianteConPersona }>>(
       `/estudiantes/getById/${id}`
     ),
 
