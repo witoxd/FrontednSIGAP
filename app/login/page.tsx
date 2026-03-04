@@ -49,11 +49,11 @@ function LoginForm() {
         <div className="absolute inset-0 bg-sidebar/80" />
 
         {/* Contenido encima del overlay */}
-        <div className="relative z-10 flex flex-col items-center justify-center w-full h-full gap-4 text-center px-12">
+        <div className="relative z-10 flex flex-col items-center justify-center w-full h-full gap-4 text-center px-12 ">
           <img
-            src="/logo_liceo.ico"
+            src="/escudo_liceo.ico"
             alt="Logo IEAP"
-            className="w-24 h-24 object-contain drop-shadow-lg grayscale brightness-150"
+            className="w-24 h-24 object-contain drop-shadow-lg brightness-100" 
           />
           <h1 className="text-5xl font-bold tracking-widest drop-shadow-md animate-shimmer">
             SIGAP

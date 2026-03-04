@@ -57,6 +57,8 @@
   animation: shimmer 3s linear infinite;
 }
 
+
+
 :root {
   --radius: 0.625rem;
   --background: #f8fafc;
