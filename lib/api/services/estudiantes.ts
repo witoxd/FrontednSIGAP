@@ -2,29 +2,29 @@ import { api } from "../client"
 import type {
   ApiResponse,
   PaginatedApiResponse,
-  EstudianteConPersona,
+  EstudianteWithPersonaDocumento,
   CreateEstudianteInput,
 } from "@/lib/types"
 
 export const estudiantesApi = {
   getAll: (limit = 50, offset = 0) =>
-    api.get<PaginatedApiResponse<EstudianteConPersona>>("/estudiantes/getAll", {
+    api.get<PaginatedApiResponse<EstudianteWithPersonaDocumento>>("/estudiantes/getAll", {
       limit,
       offset,
     }),
 
   getById: (id: number) =>
-    api.get<ApiResponse<{ estudiante: EstudianteConPersona }>>(
+    api.get<ApiResponse<{ estudiante: EstudianteWithPersonaDocumento }>>(
       `/estudiantes/getById/${id}`
     ),
 
   getByDocumento: (numero: string) =>
-    api.get<ApiResponse<EstudianteConPersona>>(
+    api.get<ApiResponse<EstudianteWithPersonaDocumento>>(
       `/estudiantes/getByDocumento/${numero}`
     ),
 
   searchIndex: (query: string) =>
-    api.get<ApiResponse<EstudianteConPersona[]>>(`/estudiantes/searchIndex/${encodeURIComponent(query)}`),
+    api.get<ApiResponse<EstudianteWithPersonaDocumento[]>>(`/estudiantes/searchIndex/${encodeURIComponent(query)}`),
 
   create: (data: CreateEstudianteInput) =>
     api.post<ApiResponse>("/estudiantes/create", data),

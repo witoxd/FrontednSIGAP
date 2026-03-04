@@ -2,19 +2,19 @@ import { api } from "../client"
 import type {
   ApiResponse,
   PaginatedApiResponse,
-  EstudianteConPersona,
+  AdministrativoWithPersonaDocumento,
   CreateAdministrativoInput,
 } from "@/lib/types"
 
 export const admisnitrativosApui = {
     getAll : (limit = 50, offset = 0) =>
-        api.get<PaginatedApiResponse<EstudianteConPersona>>("/administrativos/getAll", {
+        api.get<PaginatedApiResponse<AdministrativoWithPersonaDocumento>>("/administrativos/getAll", {
             limit,
             offset,
         }),
     
     getById: (id: number) =>
-        api.get<ApiResponse<EstudianteConPersona>>(`/administrativos/getById/${id}`),
+        api.get<ApiResponse<AdministrativoWithPersonaDocumento>>(`/administrativos/getById/${id}`),
 
     create: (data: CreateAdministrativoInput) =>
         api.post<ApiResponse>("/administrativos/create", data),

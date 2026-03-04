@@ -19,7 +19,7 @@ export default function NuevoProfesorPage() {
   useEffect(() => {
     async function loadTipoArchivo() {
       try {
-        const response = await tiposArchivosApi.getAll(50, 0)
+        const response = await tiposArchivosApi.getAll()
         const fotoPerfil = response.data.find((tipo: any) => 
           tipo.nombre?.toLowerCase().includes("foto") || 
           tipo.nombre?.toLowerCase().includes("perfil")
@@ -47,16 +47,15 @@ export default function NuevoProfesorPage() {
           nombres: formData.get("nombres") as string,
           apellido_paterno: formData.get("apellido_paterno") as string,
           apellido_materno: formData.get("apellido_materno") as string,
-          tipo_documento: formData.get("tipo_documento") as string,
+          tipo_documento_id: parseInt(formData.get("tipo_documento") as string),
           numero_documento: formData.get("numero_documento") as string,
           fecha_nacimiento: formData.get("fecha_nacimiento") as string,
-          genero: formData.get("genero") as string,
-          direccion: formData.get("direccion") as string || undefined,
-          telefono: formData.get("telefono") as string || undefined,
-          email: formData.get("email") as string || undefined,
+          genero: formData.get("genero") as "Masculino" | "Femenino" | "Otro",
         },
-        especialidad: formData.get("especialidad") as string,
+        profesor: {
+        estado: formData.get("estado") as "activo" | "inactivo",
         fecha_contratacion: formData.get("fecha_contratacion") as string,
+        }
       }
 
       const response = await profesoresApi.create(input)

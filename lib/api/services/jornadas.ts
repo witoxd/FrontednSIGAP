@@ -1,11 +1,7 @@
 import { api } from "../client"
 import type { ApiResponse, PaginatedApiResponse, Jornada } from "@/lib/types"
+import { CreateJornadaInput } from "@/lib/types"
 
-export interface CreateJornadaInput {
-  nombre: string
-  hora_inicio?: string
-  hora_fin?: string
-}
 
 export const jornadasApi = {
   getAll: (limit = 50, offset = 0) =>

@@ -247,23 +247,22 @@ export function ArchivoUploader({
 
     try {
       const formData = new FormData()
+    // 1. Campos de texto primero
       formData.append("persona_id", String(persona_id))
 
-      // Construir metadata en el orden de los archivos
-      const metadata: Array<{
-        tipo_archivo_id: number
-        descripcion: string
-      }> = []
+      // 2. Metadata antes que los archivos (multer la necesita ya parseada
+      //    cuando empieza a procesar cada archivo del stream)
+      const metadata = archivos.map((archivo) => ({
+        tipo_archivo_id: archivo.tipo_archivo_id!,
+        descripcion: archivo.descripcion || archivo.file.name,
+      }))
+      formData.append("metadata", JSON.stringify(metadata))
 
+      // 3. Archivos al final
       archivos.forEach((archivo) => {
         formData.append("archivos", archivo.file)
-        metadata.push({
-          tipo_archivo_id: archivo.tipo_archivo_id!,
-          descripcion: archivo.descripcion || archivo.file.name,
-        })
       })
 
-      formData.append("metadata", JSON.stringify(metadata))
 
       // Obtener token
       const token =

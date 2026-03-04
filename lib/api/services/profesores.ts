@@ -2,19 +2,22 @@ import { api } from "../client"
 import type {
   ApiResponse,
   PaginatedApiResponse,
-  ProfesorConPersona,
+  ProfesorWitchPersonaDocumento,
   CreateProfesorInput,
 } from "@/lib/types"
 
 export const profesoresApi = {
   getAll: (limit = 50, offset = 0) =>
-    api.get<PaginatedApiResponse<ProfesorConPersona>>("/profesores/getAll", {
+    api.get<PaginatedApiResponse<ProfesorWitchPersonaDocumento>>("/profesores/getAll", {
       limit,
       offset,
     }),
 
   getById: (id: number) =>
-    api.get<ApiResponse<ProfesorConPersona>>(`/profesores/getById/${id}`),
+    api.get<ApiResponse<ProfesorWitchPersonaDocumento>>(`/profesores/getById/${id}`),
+
+   searchIndex: (query: string) =>
+      api.get<ApiResponse<ProfesorWitchPersonaDocumento[]>>(`/profesores/searchIndex/${encodeURIComponent(query)}`),
 
   create: (data: CreateProfesorInput) =>
     api.post<ApiResponse>("/profesores/create", data),

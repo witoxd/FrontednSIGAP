@@ -9,49 +9,52 @@ import { swrFetcher } from "@/lib/api/fetcher"
 import { estudiantesApi } from "@/lib/api/services/estudiantes"
 import { DataTable, type Column } from "@/components/shared/data-table"
 import { StatusBadge } from "@/components/shared/status-badge"
-import type { PaginatedApiResponse, EstudianteConPersona } from "@/lib/types"
+import type { PaginatedApiResponse, EstudianteWithPersonaDocumento } from "@/lib/types"
 
 export default function EstudiantesPage() {
   const router = useRouter()
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState("")
   const [isSearching, setIsSearching] = useState(false)
-  const [searchResults, setSearchResults] = useState<EstudianteConPersona[] | null>(null)
+  const [searchResults, setSearchResults] = useState<EstudianteWithPersonaDocumento[] | null>(null)
   const limit = 20
 
-  const { data, isLoading, mutate } = useSWR<PaginatedApiResponse<EstudianteConPersona>>(
+  const { data, isLoading, mutate } = useSWR<PaginatedApiResponse<EstudianteWithPersonaDocumento>>(
     `/estudiantes/getAll?limit=${limit}&offset=${page * limit}`,
     swrFetcher
   )
 
-  const columns: Column<EstudianteConPersona>[] = [
-    { key: "estudiante_id", header: "ID" },
+  const columns: Column<EstudianteWithPersonaDocumento>[] = [
+    { key: "estudiante_id",
+       header: "IDs",
+       render: (est) => est.estudiante.estudiante_id
+       },
     {
       key: "nombres",
       header: "Nombre completo",
       render: (est) => {
-        const name = est.nombres ?? ""
-        const ap = est.apellido_paterno ?? ""
-        const am = est.apellido_materno ?? ""
-        return `${name} ${ap} ${am}`.trim() || `Estudiante #${est.estudiante_id}`
+        const name = est.persona.nombres ?? ""
+        const ap = est.persona.apellido_paterno ?? ""
+        const am = est.persona.apellido_materno ?? ""
+        return `${name} ${ap} ${am}`.trim() || `Estudiante #${est.estudiante.estudiante_id}`
       },
     },
     {
       key: "numero_documento",
       header: "Documento",
-      render: (est) => est.numero_documento ?? "—",
+      render: (est) => est.persona.numero_documento ?? "—",
     },
     {
       key: "estado",
       header: "Estado",
-      render: (est) => <StatusBadge status={est.estado} />,
+      render: (est) => <StatusBadge status={est.estudiante.estado} />,
     },
     {
       key: "fecha_ingreso",
       header: "Fecha ingreso",
       render: (est) =>
-        est.fecha_ingreso
-          ? new Date(est.fecha_ingreso).toLocaleDateString("es-CO")
+        est.estudiante.fecha_ingreso
+          ? new Date(est.estudiante.fecha_ingreso).toLocaleDateString("es-CO")
           : "—",
     },
   ]
@@ -72,7 +75,7 @@ export default function EstudiantesPage() {
         
         if (response.success && response.data) {
           // Obtener los IDs de personas encontradas
-          const personaIds = response.data.map((p) => p.persona_id)
+          const personaIds = response.data.map((p) => p.persona.persona_id)
           
           // Obtener todos los estudiantes para filtrar
           const estudiantesResponse = await estudiantesApi.getAll(1000, 0)
@@ -80,7 +83,7 @@ export default function EstudiantesPage() {
           if (estudiantesResponse.success && estudiantesResponse.data) {
             // Filtrar estudiantes que coincidan con las personas encontradas
             const estudiantesEncontrados = estudiantesResponse.data.filter((est) =>
-              personaIds.includes(est.persona_id)
+              personaIds.includes(est.persona.persona_id)
             )
             
             setSearchResults(estudiantesEncontrados.length > 0 ? estudiantesEncontrados : [])
@@ -124,8 +127,8 @@ export default function EstudiantesPage() {
     }
   }
 
-  function handleEdit(est: EstudianteConPersona) {
-    router.push(`/dashboard/estudiantes/${est.estudiante_id}/editar`)
+  function handleEdit(est: EstudianteWithPersonaDocumento) {
+    router.push(`/dashboard/estudiantes/${est.estudiante.estudiante_id}/editar`)
   }
 
   function handleCreate() {
@@ -217,7 +220,7 @@ export default function EstudiantesPage() {
                 <Pencil className="w-4 h-4" />
               </button>
               <button
-                onClick={() => handleDelete(est.estudiante_id)}
+                onClick={() => handleDelete(est.estudiante.estudiante_id)}
                 className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
                 aria-label="Eliminar estudiante"
               >

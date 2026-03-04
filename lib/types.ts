@@ -35,8 +35,18 @@ export interface LoginResponse {
 // Domain Models
 // ============================================================================
 
+export interface TipoDocumento {
+  tipo_documento_id: number
+  tipo_documento: string
+  nombre_documento: string
+}
+
+// ============================================================================
+// Persona Models
+// ============================================================================
+
 export interface Persona {
-  persona_id: number
+  persona_id?: number
   nombres: string
   apellido_paterno: string
   apellido_materno: string
@@ -45,6 +55,21 @@ export interface Persona {
   fecha_nacimiento: string
   genero: "Masculino" | "Femenino" | "Otro"
 }
+
+export interface PersonaWithTipoDocumento{
+    persona_id: number
+  nombres: string
+  apellido_paterno: string
+  apellido_materno: string
+  tipo_documento: TipoDocumento
+  numero_documento: string
+  fecha_nacimiento: string
+  genero: "Masculino" | "Femenino" | "Otro"
+}
+
+// ============================================================================
+// User Models
+// ============================================================================
 
 export interface Usuario {
   usuario_id: number
@@ -55,45 +80,89 @@ export interface Usuario {
   fecha_creacion: string
 }
 
+// ============================================================================
+// Acudiente Models
+// ============================================================================
+
 export interface Acudiente {
   acudiente_id: number
   persona_id: number
   parentesco: string
+  ocupacion?: string       
+  nivel_estudio?: string   
 }
 
+//DTO
+export interface CreateAcudienteImput {
+  perosna: Persona
+  acudiente: Acudiente
+}
+
+export interface AcudienteWithPerosnaDocumento {
+  persona: PersonaWithTipoDocumento
+  acudiente: Acudiente
+}
+
+
+// ============================================================================
+// Estudiante Models
+// ============================================================================
+
 export interface Estudiante {
-  estudiante_id: number
-  persona_id: number
+  estudiante_id?: number
+  persona_id?: number
   estado: "activo" | "inactivo" | "graduado" | "suspendido" | "expulsado"
   fecha_ingreso: string
 }
 
-export interface EstudianteConPersona extends Estudiante {
-  persona?: Persona
-  nombres?: string
-  apellido_paterno?: string
-  apellido_materno?: string
-  numero_documento?: string
-  tipo_documento_id?: number
-  tipo_documento?: string
-  fecha_nacimiento?: string
-  genero?: string
+export interface CreateEstudianteInput {
+  persona: Persona
+  estudiante: Estudiante
 }
 
+export interface EstudianteWithPersonaDocumento {
+  persona: PersonaWithTipoDocumento
+  estudiante: Estudiante
+}
+
+// ============================================================================
+// Colegio_Anteriores Models
+// ============================================================================
+
+export interface ColegioAnteriorAttributes {
+  colegio_ant_id: number
+  estudiante_id: number
+  nombre_colegio: string
+  ciudad?: string        
+  grado_cursado?: string
+  anio?: number
+  orden?: number        
+}
+
+// ============================================================================
+// Profesor Models
+// ============================================================================
+
 export interface Profesor {
-  profesor_id: number
-  persona_id: number
+  profesor_id?: number
+  persona_id?: number
   fecha_contratacion: string
   estado: "activo" | "inactivo"
 }
 
-export interface ProfesorConPersona extends Profesor {
-  persona?: Persona
-  nombres?: string
-  apellido_paterno?: string
-  apellido_materno?: string
-  numero_documento?: string
+export interface CreateProfesorInput {
+  persona: Persona
+  profesor: Profesor
 }
+
+export interface ProfesorWitchPersonaDocumento {
+  persona: PersonaWithTipoDocumento
+  profesor: Profesor
+}
+
+// ============================================================================
+// Admisnitrativo Models
+// ============================================================================
 
 export interface Administrativo {
   administrativo_id: number
@@ -103,6 +172,20 @@ export interface Administrativo {
   estado: boolean
 }
 
+export interface CreateAdministrativoInput {
+  persona: Persona
+  administrativo: Administrativo
+}
+
+export interface AdministrativoWithPersonaDocumento {
+  persona: PersonaWithTipoDocumento
+  administrativo: Administrativo
+}
+
+// ============================================================================
+// Curso Models
+// ============================================================================
+
 export interface Curso {
   curso_id: number
   nombre: string
@@ -110,6 +193,17 @@ export interface Curso {
   descripcion?: string
 }
 
+export interface CreateCursoInput {
+  curso: {
+    nombre: string
+    grado: string
+    descripcion?: string
+  }
+}
+
+// ============================================================================
+// Matricula Models
+// ============================================================================
 export interface Matricula {
   matricula_id: number
   estudiante_id: number
@@ -128,6 +222,22 @@ export interface MatriculaConRelaciones extends Matricula {
   jornada_nombre?: string
 }
 
+export interface CreateMatriculaInput {
+  matricula: {
+    estudiante_id: number
+    profesor_id: number
+    curso_id: number
+    jornada_id: number
+    estado: "activo" | "finalizada" | "retirada"
+    anio_egreso?: number
+    fecha_matricula: string
+  }
+}
+
+// ============================================================================
+// Jornada Models
+// ============================================================================
+
 export interface Jornada {
   jornada_id: number
   nombre: string
@@ -135,17 +245,25 @@ export interface Jornada {
   hora_fin?: string
 }
 
-export interface TipoDocumento {
-  tipo_documento_id: number
-  tipo_documento: string
-  nombre_documento: string
+export interface CreateJornadaInput {
+  nombre: string
+  hora_inicio?: string
+  hora_fin?: string
 }
+
+// ============================================================================
+// Role Models
+// ============================================================================
 
 export interface Role {
   role_id: number
   nombre: "admin" | "profesor" | "estudiante" | "administrativo"
   descripcion?: string
 }
+
+// ============================================================================
+// Archivos Models y TipoArchivos
+// ============================================================================
 
 export interface Archivo {
   archivo_id: number
@@ -162,84 +280,6 @@ export interface TipoArchivo {
   descripcion?: string
   extensiones_permitidas?: string[]
   activo?: boolean
-}
-
-
-// ============================================================================
-// Form / DTO Types
-// ============================================================================
-
-export interface CreatePersonaInput {
-  nombres: string
-  apellido_paterno?: string
-  apellido_materno?: string
-  tipo_documento_id: number
-  numero_documento: string
-  fecha_nacimiento: string
-  genero: "Masculino" | "Femenino" | "Otro"
-}
-
-export interface CreateAdministrativoInput {
-  persona: CreatePersonaInput
-  administrativo: {
-    cargo: string
-    fecha_contratacion?: string
-    estado?: boolean
-  }
-}
-
-export interface CreateEstudianteInput {
-  persona: CreatePersonaInput
-  estudiante: {
-    estado?: string
-    fecha_ingreso?: string
-  }
-}
-
-export interface EgresadoConRelaciones extends CreateEgresadoInput {
-  estudiante_nombre?: string
-  numero_documento?: string
-}
-
-export interface CreateEgresadoInput {
-  estudiante_id: number
-  fecha_egreso: string
-  titulo_obtenido?: string
-  observaciones?: string
-}
-
-export interface CreateProfesorInput {
-  persona: CreatePersonaInput
-  profesor: {
-    fecha_contratacion?: string
-    estado?: string
-  }
-}
-
-export interface CreateAcudienteInput { 
-  persona: CreatePersonaInput
-  acudiente: {
-    parentesco: string
-  }
-}
-
-export interface CreateCursoInput {
-  curso: {
-    nombre: string
-    grado: string
-    descripcion?: string
-  }
-}
-
-export interface CreateMatriculaInput {
-  matricula: {
-    estudiante_id: number
-    profesor_id: number
-    curso_id: number
-    jornada_id: number
-    estado?: string
-    anio_egreso?: number
-  }
 }
 
 export interface CreateArchivoInput {
@@ -268,6 +308,26 @@ export interface CreateTipoArchivoInput {
   extensiones_permitidas?: string[]
   activo?: boolean
 }
+
+
+// ============================================================================
+// Form / DTO Types
+// ============================================================================
+
+
+
+export interface EgresadoConRelaciones extends CreateEgresadoInput {
+  estudiante_nombre?: string
+  numero_documento?: string
+}
+
+export interface CreateEgresadoInput {
+  estudiante_id: number
+  fecha_egreso: string
+  titulo_obtenido?: string
+  observaciones?: string
+}
+
 
 // ============================================================================
 // Auth
