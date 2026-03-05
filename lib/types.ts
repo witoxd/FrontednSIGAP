@@ -328,6 +328,74 @@ export interface CreateEgresadoInput {
   observaciones?: string
 }
 
+export interface UpsertFichaDTO {
+  ficha: {
+    numero_hermanos?:     number
+    posicion_hermanos?:   number
+    nombre_hermano_mayor?: string
+    parientes_hogar?:     string
+    total_parientes?:     number
+    motivo_traslado?:     string
+    limitaciones_fisicas?: string
+    otras_limitaciones?:  string
+    talentos_especiales?: string
+    otras_actividades?:   string
+    eps_ars?:             string
+    alergia?:             string
+    centro_atencion_medica?: string
+    medio_transporte?:    string
+    transporte_propio?:   boolean
+    observaciones?:       string
+  }
+}
+
+export interface ColegioAnterior {
+  colegio_ant_id: number
+  estudiante_id:  number
+  nombre_colegio: string
+  ciudad?:        string
+  grado_cursado?: string
+  anio?:          number
+  orden?:         number
+}
+
+export interface CreateColegioDTO {
+  colegio: {
+    nombre_colegio: string
+    ciudad?:        string
+    grado_cursado?: string
+    anio?:          number
+  }
+}
+
+export interface UpdateColegioDTO {
+  colegio: {
+    nombre_colegio?: string
+    ciudad?:         string
+    grado_cursado?:  string
+    anio?:           number
+    orden?:          number
+  }
+}
+
+export interface ReplaceColegiosDTO {
+  colegios: Array<{
+    nombre_colegio: string
+    ciudad?:        string
+    grado_cursado?: string
+    anio?:          number
+  }>
+}
+
+export interface UpsertViviendaDTO {
+  vivienda: {
+    tipo_paredes?: string
+    tipo_techo?:   string
+    tipo_pisos?:   string
+    num_banos?:    number
+    num_cuartos?:  number
+  }
+}
 
 // ============================================================================
 // Auth
