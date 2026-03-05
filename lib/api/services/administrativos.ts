@@ -17,7 +17,7 @@ export const admisnitrativosApui = {
         api.get<ApiResponse<AdministrativoWithPersonaDocumento>>(`/administrativos/getById/${id}`),
 
     create: (data: CreateAdministrativoInput) =>
-        api.post<ApiResponse>("/administrativos/create", data),
+        api.post<ApiResponse<AdministrativoWithPersonaDocumento>>("/administrativos/create", data),
 
     update: (id: number, data: Partial<CreateAdministrativoInput>) =>
         api.put<ApiResponse>(`/administrativos/update/${id}`, data),

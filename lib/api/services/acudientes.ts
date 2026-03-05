@@ -2,25 +2,26 @@ import { api } from "../client"
 import type {
   ApiResponse,
   PaginatedApiResponse,
-  CreateAcudienteInput
+  CreateAcudienteImput,
+  AcudienteWithPerosnaDocumento
 } from "@/lib/types"
 
 
 
 export const acudientesApi = {
   getAll: (limit = 50, offset = 0) =>
-    api.get<PaginatedApiResponse<CreateAcudienteInput>>("/acudientes/getAll", {
+    api.get<PaginatedApiResponse<AcudienteWithPerosnaDocumento>>("/acudientes/getAll", {
       limit,
       offset,
     }),
 
   getById: (id: number) =>
-    api.get<ApiResponse<CreateAcudienteInput>>(`/acudientes/getById/${id}`),
+    api.get<ApiResponse<AcudienteWithPerosnaDocumento>>(`/acudientes/getById/${id}`),
 
-  create: (data: CreateAcudienteInput) =>
+  create: (data: CreateAcudienteImput) =>
     api.post<ApiResponse>("/acudientes/create", data),
 
-  update: (id: number, data: Partial<CreateAcudienteInput>) =>
+  update: (id: number, data: Partial<CreateAcudienteImput>) =>
     api.put<ApiResponse>(`/acudientes/update/${id}`, data),
 
   delete: (id: number) =>
