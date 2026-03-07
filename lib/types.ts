@@ -67,6 +67,18 @@ export interface PersonaWithTipoDocumento{
   genero: "Masculino" | "Femenino" | "Otro"
 }
 
+export interface CreatePersonaInput {
+  persona:{
+  nombres: string
+  apellido_paterno: string
+  apellido_materno: string
+  tipo_documento_id: number
+  numero_documento: string
+  fecha_nacimiento: string
+  genero: "Masculino" | "Femenino" | "Otro"
+  }
+}
+
 // ============================================================================
 // User Models
 // ============================================================================
@@ -349,6 +361,30 @@ export interface UpsertFichaDTO {
   }
 }
 
+
+export interface FichaEstudiante {
+  ficha_id:               number
+  estudiante_id:          number
+  numero_hermanos?:       number
+  posicion_hermanos?:     number
+  nombre_hermano_mayor?:  string
+  parientes_hogar?:       string
+  total_parientes?:       number
+  motivo_traslado?:       string
+  limitaciones_fisicas?:  string
+  otras_limitaciones?:    string
+  talentos_especiales?:   string
+  otras_actividades?:     string
+  eps_ars?:               string
+  alergia?:               string
+  centro_atencion_medica?: string
+  medio_transporte?:      string
+  transporte_propio?:     boolean
+  observaciones?:         string
+  created_at?:            string
+  updated_at?:            string
+}
+
 export interface ColegioAnterior {
   colegio_ant_id: number
   estudiante_id:  number
@@ -395,6 +431,18 @@ export interface UpsertViviendaDTO {
     num_banos?:    number
     num_cuartos?:  number
   }
+}
+
+
+export interface ViviendaEstudiante {
+  vivienda_id:    number
+  estudiante_id:  number
+  tipo_paredes?:  string
+  tipo_techo?:    string
+  tipo_pisos?:    string
+  num_banos?:     number
+  num_cuartos?:   number
+  updated_at?:    string
 }
 
 // ============================================================================
