@@ -1,15 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import type { ViviendaEstudiante } from "@/lib/types"
-import {
-  viviendaEstudianteApi
-} from "@/lib/api/services/viviendaEstudiante"
-import type { UpsertViviendaDTO } from "@/lib/types"
+import type { ViviendaEstudiante, UpsertViviendaDTO } from "@/lib/types"
 
-// ─── tipos locales ────────────────────────────────────────────────────────────
+// ── Tipo del formulario ───────────────────────────────────────────────────────
 
-interface ViviendaForm {
+export interface ViviendaFormData {
   tipo_paredes: string
   tipo_techo:   string
   tipo_pisos:   string
@@ -17,7 +12,9 @@ interface ViviendaForm {
   num_cuartos:  string
 }
 
-function formVacio(): ViviendaForm {
+// ── Helpers de conversión ─────────────────────────────────────────────────────
+
+export function viviendaFormVacio(): ViviendaFormData {
   return {
     tipo_paredes: "",
     tipo_techo:   "",
@@ -27,7 +24,7 @@ function formVacio(): ViviendaForm {
   }
 }
 
-function fromApi(v: ViviendaEstudiante): ViviendaForm {
+export function viviendaFromApi(v: ViviendaEstudiante): ViviendaFormData {
   return {
     tipo_paredes: v.tipo_paredes ?? "",
     tipo_techo:   v.tipo_techo   ?? "",
@@ -37,7 +34,7 @@ function fromApi(v: ViviendaEstudiante): ViviendaForm {
   }
 }
 
-function toDTO(f: ViviendaForm): UpsertViviendaDTO["vivienda"] {
+export function viviendaToDTO(f: ViviendaFormData): UpsertViviendaDTO["vivienda"] {
   return {
     ...(f.tipo_paredes !== "" && { tipo_paredes: f.tipo_paredes }),
     ...(f.tipo_techo   !== "" && { tipo_techo:   f.tipo_techo }),
@@ -47,17 +44,18 @@ function toDTO(f: ViviendaForm): UpsertViviendaDTO["vivienda"] {
   }
 }
 
-// ─── props ────────────────────────────────────────────────────────────────────
+// ── Props ─────────────────────────────────────────────────────────────────────
 
-interface Props {
-  estudianteId: number
-  onGuardado?:  (vivienda: ViviendaEstudiante) => void
+interface ViviendaEstudianteFormProps {
+  data: ViviendaFormData
+  onChange: (data: ViviendaFormData) => void
+  disabled?: boolean
 }
 
-// ─── helpers de presentación ──────────────────────────────────────────────────
+// ── Helpers de presentación ───────────────────────────────────────────────────
 
 const inputCls =
-  "w-full rounded border border-slate-200 px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  "w-full rounded border border-slate-200 px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
 
 function Campo({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -68,139 +66,78 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-// ─── componente principal ─────────────────────────────────────────────────────
+// ── Componente principal ──────────────────────────────────────────────────────
 
-export default function ViviendaEstudianteForm({ estudianteId, onGuardado }: Props) {
-  const [form, setForm]           = useState<ViviendaForm>(formVacio())
-  const [cargando, setCargando]   = useState(true)
-  const [guardando, setGuardando] = useState(false)
-  const [error, setError]         = useState<string | null>(null)
-  const [exito, setExito]         = useState(false)
+export function ViviendaEstudianteForm({ data, onChange, disabled = false }: ViviendaEstudianteFormProps) {
 
-  useEffect(() => {
-    setCargando(true)
-    viviendaEstudianteApi
-      .getByEstudiante(estudianteId)
-      .then((res) => { if (res.data) setForm(fromApi(res.data)) })
-      .catch(() => { /* vivienda inexistente — form vacío */ })
-      .finally(() => setCargando(false))
-  }, [estudianteId])
-
-  function handleChange(campo: keyof ViviendaForm, valor: string) {
-    setForm((prev) => ({ ...prev, [campo]: valor }))
-  }
-
-  async function handleGuardar() {
-    setError(null)
-    setExito(false)
-    setGuardando(true)
-    try {
-      const res = await viviendaEstudianteApi.upsert(estudianteId, { vivienda: toDTO(form) })
-      if (res.data) {
-        setForm(fromApi(res.data))
-        onGuardado?.(res.data)
-      }
-      setExito(true)
-      setTimeout(() => setExito(false), 3000)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Error al guardar")
-    } finally {
-      setGuardando(false)
-    }
-  }
-
-  if (cargando) {
-    return (
-      <div className="flex items-center justify-center py-10 text-slate-400 text-sm">
-        Cargando vivienda…
-      </div>
-    )
+  function handleChange(campo: keyof ViviendaFormData, valor: string) {
+    onChange({ ...data, [campo]: valor })
   }
 
   return (
-    <div className="space-y-6">
+    <fieldset className="space-y-3">
+      <legend className="text-xs font-semibold text-slate-500 uppercase tracking-wide pb-1 border-b border-slate-100 w-full">
+        Características del hogar
+      </legend>
 
-      <fieldset className="space-y-3">
-        <legend className="text-xs font-semibold text-slate-500 uppercase tracking-wide pb-1 border-b border-slate-100 w-full">
-          Características del hogar
-        </legend>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Campo label="Tipo de paredes">
+          <input
+            type="text"
+            disabled={disabled}
+            value={data.tipo_paredes}
+            onChange={(e) => handleChange("tipo_paredes", e.target.value)}
+            placeholder="Ej: Ladrillo, Madera, Bahareque"
+            className={inputCls}
+          />
+        </Campo>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Campo label="Tipo de paredes">
-            <input
-              type="text"
-              value={form.tipo_paredes}
-              onChange={(e) => handleChange("tipo_paredes", e.target.value)}
-              placeholder="Ej: Ladrillo, Madera, Bahareque"
-              className={inputCls}
-            />
-          </Campo>
+        <Campo label="Tipo de techo">
+          <input
+            type="text"
+            disabled={disabled}
+            value={data.tipo_techo}
+            onChange={(e) => handleChange("tipo_techo", e.target.value)}
+            placeholder="Ej: Zinc, Concreto, Palma"
+            className={inputCls}
+          />
+        </Campo>
 
-          <Campo label="Tipo de techo">
-            <input
-              type="text"
-              value={form.tipo_techo}
-              onChange={(e) => handleChange("tipo_techo", e.target.value)}
-              placeholder="Ej: Zinc, Concreto, Palma"
-              className={inputCls}
-            />
-          </Campo>
+        <Campo label="Tipo de pisos">
+          <input
+            type="text"
+            disabled={disabled}
+            value={data.tipo_pisos}
+            onChange={(e) => handleChange("tipo_pisos", e.target.value)}
+            placeholder="Ej: Cerámica, Cemento, Tierra"
+            className={inputCls}
+          />
+        </Campo>
 
-          <Campo label="Tipo de pisos">
-            <input
-              type="text"
-              value={form.tipo_pisos}
-              onChange={(e) => handleChange("tipo_pisos", e.target.value)}
-              placeholder="Ej: Cerámica, Cemento, Tierra"
-              className={inputCls}
-            />
-          </Campo>
+        <Campo label="Número de baños">
+          <input
+            type="number"
+            min={0}
+            disabled={disabled}
+            value={data.num_banos}
+            onChange={(e) => handleChange("num_banos", e.target.value)}
+            placeholder="0"
+            className={inputCls}
+          />
+        </Campo>
 
-          <Campo label="Número de baños">
-            <input
-              type="number"
-              min={0}
-              value={form.num_banos}
-              onChange={(e) => handleChange("num_banos", e.target.value)}
-              placeholder="0"
-              className={inputCls}
-            />
-          </Campo>
-
-          <Campo label="Número de cuartos">
-            <input
-              type="number"
-              min={0}
-              value={form.num_cuartos}
-              onChange={(e) => handleChange("num_cuartos", e.target.value)}
-              placeholder="0"
-              className={inputCls}
-            />
-          </Campo>
-        </div>
-      </fieldset>
-
-      {error && (
-        <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded px-3 py-2">
-          {error}
-        </p>
-      )}
-      {exito && (
-        <p className="text-sm text-green-600 bg-green-50 border border-green-200 rounded px-3 py-2">
-          Vivienda guardada correctamente.
-        </p>
-      )}
-
-      <div className="flex justify-end pt-2">
-        <button
-          type="button"
-          onClick={handleGuardar}
-          disabled={guardando}
-          className="px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {guardando ? "Guardando…" : "Guardar vivienda"}
-        </button>
+        <Campo label="Número de cuartos">
+          <input
+            type="number"
+            min={0}
+            disabled={disabled}
+            value={data.num_cuartos}
+            onChange={(e) => handleChange("num_cuartos", e.target.value)}
+            placeholder="0"
+            className={inputCls}
+          />
+        </Campo>
       </div>
-    </div>
+    </fieldset>
   )
 }
