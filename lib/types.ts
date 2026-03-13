@@ -54,6 +54,12 @@ export interface Persona {
   numero_documento: string
   fecha_nacimiento: string
   genero: "Masculino" | "Femenino" | "Otro"
+  grupo_sanguineo?: string        
+  grupo_etnico?: string            
+  credo_religioso?: string         
+  lugar_nacimiento?: string        
+  serial_registro_civil?: string   
+  expedida_en?: string   
 }
 
 export interface PersonaWithTipoDocumento{
@@ -65,6 +71,12 @@ export interface PersonaWithTipoDocumento{
   numero_documento: string
   fecha_nacimiento: string
   genero: "Masculino" | "Femenino" | "Otro"
+  grupo_sanguineo?: string        
+  grupo_etnico?: string            
+  credo_religioso?: string         
+  lugar_nacimiento?: string        
+  serial_registro_civil?: string   
+  expedida_en?: string   
 }
 
 export interface CreatePersonaInput {
@@ -76,6 +88,12 @@ export interface CreatePersonaInput {
   numero_documento: string
   fecha_nacimiento: string
   genero: "Masculino" | "Femenino" | "Otro"
+  grupo_sanguineo?: string        
+  grupo_etnico?: string            
+  credo_religioso?: string         
+  lugar_nacimiento?: string        
+  serial_registro_civil?: string   
+  expedida_en?: string   
   }
 }
 
@@ -443,6 +461,61 @@ export interface ViviendaEstudiante {
   num_banos?:     number
   num_cuartos?:   number
   updated_at?:    string
+}
+
+// ============================================================================
+// EXPEDIENTE — endpoint compuesto GET/PUT /expediente/:estudianteId
+// ============================================================================
+
+export interface ExpedienteResponse {
+  ficha:    FichaEstudiante | null
+  colegios: ColegioAnterior[]        // array — un estudiante puede tener varios
+  vivienda: ViviendaEstudiante | null
+}
+
+export interface UpsertExpedienteDTO {
+  ficha?:    UpsertFichaDTO["ficha"]
+  colegios?: ReplaceColegiosDTO["colegios"]  // también array
+  vivienda?: UpsertViviendaDTO["vivienda"]
+}
+
+// =============================================================================
+// CONTACTOS
+// =============================================================================
+
+export interface Contacto {
+  contacto_id: number
+  persona_id: number
+  tipo_contacto: "telefono" | "celular" | "email" | "direccion" | "otro"
+  valor: string
+  es_principal: boolean
+  activo: boolean
+}
+
+/**
+ * contacto_id, es_principal y activo son opcionales —
+ * el backend los asigna por defecto.
+ */
+export interface ContactoCreationAttributes
+  extends Omit<Contacto, "contacto_id" | "es_principal" | "activo"> {
+  contacto_id?: number
+  es_principal?: boolean
+  activo?: boolean
+}
+
+/**
+ * Para actualizar un contacto existente.
+ * Todos los campos son opcionales — solo se envían los que cambian.
+ */
+export interface UpdateContactoDTO {
+  contacto: Partial<ContactoCreationAttributes>
+}
+
+/**
+ * Para crear varios contactos en una sola request.
+ */
+export interface BulkCreateContactoDTO {
+  contactos: ContactoCreationAttributes[]
 }
 
 // ============================================================================
