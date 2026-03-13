@@ -1,6 +1,5 @@
 const statusStyles: Record<string, string> = {
   activo: "bg-success/10 text-success",
-  activa: "bg-success/10 text-success",
   inactivo: "bg-muted text-muted-foreground",
   graduado: "bg-accent text-accent-foreground",
   suspendido: "bg-warning/10 text-warning",

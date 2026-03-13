@@ -9,7 +9,7 @@ import { swrFetcher } from "@/lib/api/fetcher"
 import { profesoresApi } from "@/lib/api/services/profesores"
 import { DataTable, type Column } from "@/components/shared/data-table"
 import { StatusBadge } from "@/components/shared/status-badge"
-import type { PaginatedApiResponse, ProfesorConPersona } from "@/lib/types"
+import type { PaginatedApiResponse, ProfesorWitchPersonaDocumento } from "@/lib/types"
 
 export default function ProfesoresPage() {
   const router = useRouter()
@@ -17,43 +17,43 @@ export default function ProfesoresPage() {
   const [search, setSearch] = useState("")
   const limit = 20
 
-  const { data, isLoading, mutate } = useSWR<PaginatedApiResponse<ProfesorConPersona>>(
+  const { data, isLoading, mutate } = useSWR<PaginatedApiResponse<ProfesorWitchPersonaDocumento>>(
     `/profesores/getAll?limit=${limit}&offset=${page * limit}`,
     swrFetcher
   )
 
-  const columns: Column<ProfesorConPersona>[] = [
-    { key: "profesor_id", header: "ID" },
+  const columns: Column<ProfesorWitchPersonaDocumento>[] = [
+    { key: "profesor_id", header: "ID", render: (p) => p.profesor.profesor_id },
     {
       key: "nombres",
       header: "Nombre completo",
       render: (p) =>
-        `${p.nombres ?? ""} ${p.apellido_paterno ?? ""} ${p.apellido_materno ?? ""}`.trim() ||
-        `Profesor #${p.profesor_id}`,
+        `${p.persona.nombres ?? ""} ${p.persona.apellido_paterno ?? ""} ${p.persona.apellido_materno ?? ""}`.trim() ||
+        `Profesor #${p.profesor.profesor_id}`,
     },
     {
       key: "numero_documento",
       header: "Documento",
-      render: (p) => p.numero_documento ?? "—",
+      render: (p) => p.persona.numero_documento ?? "—",
     },
     {
       key: "estado",
       header: "Estado",
-      render: (p) => <StatusBadge status={p.estado} />,
+      render: (p) => <StatusBadge status={p.profesor.estado} />,
     },
     {
       key: "fecha_contratacion",
       header: "Contratacion",
       render: (p) =>
-        p.fecha_contratacion
-          ? new Date(p.fecha_contratacion).toLocaleDateString("es-CO")
+        p.profesor.fecha_contratacion
+          ? new Date(p.profesor.fecha_contratacion).toLocaleDateString("es-CO")
           : "—",
     },
   ]
 
   const filtered = data?.data?.filter((p) => {
     if (!search) return true
-    const full = `${p.nombres ?? ""} ${p.apellido_paterno ?? ""} ${p.numero_documento ?? ""}`.toLowerCase()
+    const full = `${p.persona.nombres ?? ""} ${p.persona.apellido_paterno ?? ""} ${p.persona.numero_documento ?? ""}`.toLowerCase()
     return full.includes(search.toLowerCase())
   }) ?? []
 
@@ -72,8 +72,8 @@ export default function ProfesoresPage() {
     router.push("/dashboard/profesores/nuevo")
   }
 
-  function handleEdit(p: ProfesorConPersona) {
-    router.push(`/dashboard/profesores/${p.profesor_id}/editar`)
+  function handleEdit(p: ProfesorWitchPersonaDocumento) {
+    router.push(`/dashboard/profesores/${p.profesor.profesor_id}/editar`)
   }
 
   const totalPages = data?.pagination ? Math.ceil(data.pagination.total / limit) : 0
@@ -123,7 +123,7 @@ export default function ProfesoresPage() {
                 <Pencil className="w-4 h-4" />
               </button>
               <button
-                onClick={() => handleDelete(p.profesor_id)}
+                onClick={() => handleDelete(p.profesor.profesor_id)}
                 className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
                 aria-label="Eliminar profesor"
               >

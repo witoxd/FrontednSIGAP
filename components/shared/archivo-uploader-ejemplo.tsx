@@ -8,7 +8,7 @@
  */
 
 import { useState } from "react"
-import { ArchivoUploader } from "./archivo-uploader"
+import { ArchivoUploader } from "./archvos/archivo-uploader"
 import { Modal } from "./modal"
 
 // ============================================================================
