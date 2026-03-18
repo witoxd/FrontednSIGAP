@@ -54,16 +54,16 @@ export interface Persona {
   numero_documento: string
   fecha_nacimiento: string
   genero: "Masculino" | "Femenino" | "Otro"
-  grupo_sanguineo?: string        
-  grupo_etnico?: string            
-  credo_religioso?: string         
-  lugar_nacimiento?: string        
-  serial_registro_civil?: string   
-  expedida_en?: string   
+  grupo_sanguineo?: string
+  grupo_etnico?: string
+  credo_religioso?: string
+  lugar_nacimiento?: string
+  serial_registro_civil?: string
+  expedida_en?: string
 }
 
-export interface PersonaWithTipoDocumento{
-    persona_id: number
+export interface PersonaWithTipoDocumento {
+  persona_id: number
   nombres: string
   apellido_paterno: string
   apellido_materno: string
@@ -71,29 +71,29 @@ export interface PersonaWithTipoDocumento{
   numero_documento: string
   fecha_nacimiento: string
   genero: "Masculino" | "Femenino" | "Otro"
-  grupo_sanguineo?: string        
-  grupo_etnico?: string            
-  credo_religioso?: string         
-  lugar_nacimiento?: string        
-  serial_registro_civil?: string   
-  expedida_en?: string   
+  grupo_sanguineo?: string
+  grupo_etnico?: string
+  credo_religioso?: string
+  lugar_nacimiento?: string
+  serial_registro_civil?: string
+  expedida_en?: string
 }
 
 export interface CreatePersonaInput {
-  persona:{
-  nombres: string
-  apellido_paterno: string
-  apellido_materno: string
-  tipo_documento_id: number
-  numero_documento: string
-  fecha_nacimiento: string
-  genero: "Masculino" | "Femenino" | "Otro"
-  grupo_sanguineo?: string        
-  grupo_etnico?: string            
-  credo_religioso?: string         
-  lugar_nacimiento?: string        
-  serial_registro_civil?: string   
-  expedida_en?: string   
+  persona: {
+    nombres: string
+    apellido_paterno: string
+    apellido_materno: string
+    tipo_documento_id: number
+    numero_documento: string
+    fecha_nacimiento: string
+    genero: "Masculino" | "Femenino" | "Otro"
+    grupo_sanguineo?: string
+    grupo_etnico?: string
+    credo_religioso?: string
+    lugar_nacimiento?: string
+    serial_registro_civil?: string
+    expedida_en?: string
   }
 }
 
@@ -110,28 +110,108 @@ export interface Usuario {
   fecha_creacion: string
 }
 
-// ============================================================================
-// Acudiente Models
-// ============================================================================
+// =============================================================================
+// ACUDIENTES
+// Agregar al final de lib/types.ts
+// =============================================================================
 
+/**
+ * Acudiente tal como lo devuelve el backend (solo sus datos propios).
+ * No incluye persona ni estudiantes — esos vienen en tipos extendidos.
+ */
 export interface Acudiente {
   acudiente_id: number
-  persona_id: number
-  parentesco: string
-  ocupacion?: string       
-  nivel_estudio?: string   
+  parentesco?: string
+  ocupacion?: string
+  nivel_estudio?: string
 }
 
-//DTO
-export interface CreateAcudienteImput {
-  perosna: Persona
+/**
+ * Acudiente con la persona incluida (nested).
+ * Es lo que devuelve GET /acudientes/getAll y GET /acudientes/getById/:id.
+ *
+ * Analogía: en la BD, Acudiente solo guarda "persona_id".
+ * El backend hace JOIN y te devuelve el objeto completo.
+ */
+export interface AcudienteWithPersona {
+  acudiente: Acudiente
+  persona: PersonaWithTipoDocumento
+}
+
+// ── DTOs ──────────────────────────────────────────────────────────────────────
+
+/**
+ * Para crear un acudiente nuevo.
+ * El backend crea la Persona y el Acudiente en una sola transacción.
+ */
+export interface CreateAcudienteInput {
+  persona: Persona
   acudiente: Acudiente
 }
+
+/**
+ * Para actualizar un acudiente existente.
+ * Igual que crear, pero todos los campos de persona son opcionales.
+ */
+export interface UpdateAcudienteInput {
+  persona: Partial<CreateAcudienteInput["persona"]>
+  acudiente: Partial<CreateAcudienteInput["acudiente"]>
+}
+
+// ── Tabla intermedia acudiente ↔ estudiante ───────────────────────────────────
+
+/**
+ * Fila de la tabla acudiente_estudiante.
+ * Representa que un acudiente tiene relación con un estudiante.
+ */
+export interface AcudienteEstudiante {
+  acudiente_estudiante_id: number
+  estudiante_id: number
+  acudiente_id: number
+  tipo_relacion?: string
+  es_principal?: boolean
+}
+
+/**
+ * DTO para asignar un estudiante a un acudiente.
+ * POST /acudientes/assignToEstudiante
+ */
+export interface AssignToEstudianteDTO {
+  assignToEstudiante: {
+    acudiente_id: number
+    estudiante_id: number
+    tipo_relacion?: string
+    es_principal?: boolean
+  }
+}
+
+/**
+ * Estudiante resumido — lo que necesitamos mostrar
+ * en la tabla de asignaciones y en el modal de búsqueda.
+ */
+export interface EstudianteResumen {
+  /** persona_id del estudiante (es también su PK en la tabla estudiantes) */
+  persona_id: number
+  nombres: string
+  apellido_paterno?: string
+  apellido_materno?: string
+  numero_documento: string
+  /** ID real de la fila en tabla estudiantes */
+  estudiante_id?: number
+}
+
+
+export interface AsignacionConEstudiante extends AcudienteEstudiante {
+  estudiante: EstudianteResumen
+}
+
 
 export interface AcudienteWithPerosnaDocumento {
   persona: PersonaWithTipoDocumento
   acudiente: Acudiente
 }
+
+
 
 
 // ============================================================================
@@ -163,10 +243,10 @@ export interface ColegioAnteriorAttributes {
   colegio_ant_id: number
   estudiante_id: number
   nombre_colegio: string
-  ciudad?: string        
+  ciudad?: string
   grado_cursado?: string
   anio?: number
-  orden?: number        
+  orden?: number
 }
 
 // ============================================================================
@@ -260,7 +340,7 @@ export interface CreateMatriculaInput {
     jornada_id: number
     estado: "activo" | "finalizada" | "retirada"
     anio_egreso?: number
-    fecha_matricula: string
+    fecha_matricula?: string
   }
 }
 
@@ -360,107 +440,107 @@ export interface CreateEgresadoInput {
 
 export interface UpsertFichaDTO {
   ficha: {
-    numero_hermanos?:     number
-    posicion_hermanos?:   number
+    numero_hermanos?: number
+    posicion_hermanos?: number
     nombre_hermano_mayor?: string
-    parientes_hogar?:     string
-    total_parientes?:     number
-    motivo_traslado?:     string
+    parientes_hogar?: string
+    total_parientes?: number
+    motivo_traslado?: string
     limitaciones_fisicas?: string
-    otras_limitaciones?:  string
+    otras_limitaciones?: string
     talentos_especiales?: string
-    otras_actividades?:   string
-    eps_ars?:             string
-    alergia?:             string
+    otras_actividades?: string
+    eps_ars?: string
+    alergia?: string
     centro_atencion_medica?: string
-    medio_transporte?:    string
-    transporte_propio?:   boolean
-    observaciones?:       string
+    medio_transporte?: string
+    transporte_propio?: boolean
+    observaciones?: string
   }
 }
 
 
 export interface FichaEstudiante {
-  ficha_id:               number
-  estudiante_id:          number
-  numero_hermanos?:       number
-  posicion_hermanos?:     number
-  nombre_hermano_mayor?:  string
-  parientes_hogar?:       string
-  total_parientes?:       number
-  motivo_traslado?:       string
-  limitaciones_fisicas?:  string
-  otras_limitaciones?:    string
-  talentos_especiales?:   string
-  otras_actividades?:     string
-  eps_ars?:               string
-  alergia?:               string
+  ficha_id: number
+  estudiante_id: number
+  numero_hermanos?: number
+  posicion_hermanos?: number
+  nombre_hermano_mayor?: string
+  parientes_hogar?: string
+  total_parientes?: number
+  motivo_traslado?: string
+  limitaciones_fisicas?: string
+  otras_limitaciones?: string
+  talentos_especiales?: string
+  otras_actividades?: string
+  eps_ars?: string
+  alergia?: string
   centro_atencion_medica?: string
-  medio_transporte?:      string
-  transporte_propio?:     boolean
-  observaciones?:         string
-  created_at?:            string
-  updated_at?:            string
+  medio_transporte?: string
+  transporte_propio?: boolean
+  observaciones?: string
+  created_at?: string
+  updated_at?: string
 }
 
 export interface ColegioAnterior {
   colegio_ant_id: number
-  estudiante_id:  number
+  estudiante_id: number
   nombre_colegio: string
-  ciudad?:        string
+  ciudad?: string
   grado_cursado?: string
-  anio?:          number
-  orden?:         number
+  anio?: number
+  orden?: number
 }
 
 export interface CreateColegioDTO {
   colegio: {
     nombre_colegio: string
-    ciudad?:        string
+    ciudad?: string
     grado_cursado?: string
-    anio?:          number
+    anio?: number
   }
 }
 
 export interface UpdateColegioDTO {
   colegio: {
     nombre_colegio?: string
-    ciudad?:         string
-    grado_cursado?:  string
-    anio?:           number
-    orden?:          number
+    ciudad?: string
+    grado_cursado?: string
+    anio?: number
+    orden?: number
   }
 }
 
 export interface ReplaceColegiosDTO {
   colegios: Array<{
     nombre_colegio: string
-    ciudad?:        string
+    ciudad?: string
     grado_cursado?: string
-    anio?:          number
+    anio?: number
   }>
 }
 
 export interface UpsertViviendaDTO {
   vivienda: {
     tipo_paredes?: string
-    tipo_techo?:   string
-    tipo_pisos?:   string
-    num_banos?:    number
-    num_cuartos?:  number
+    tipo_techo?: string
+    tipo_pisos?: string
+    num_banos?: number
+    num_cuartos?: number
   }
 }
 
 
 export interface ViviendaEstudiante {
-  vivienda_id:    number
-  estudiante_id:  number
-  tipo_paredes?:  string
-  tipo_techo?:    string
-  tipo_pisos?:    string
-  num_banos?:     number
-  num_cuartos?:   number
-  updated_at?:    string
+  vivienda_id: number
+  estudiante_id: number
+  tipo_paredes?: string
+  tipo_techo?: string
+  tipo_pisos?: string
+  num_banos?: number
+  num_cuartos?: number
+  updated_at?: string
 }
 
 // ============================================================================
@@ -468,13 +548,13 @@ export interface ViviendaEstudiante {
 // ============================================================================
 
 export interface ExpedienteResponse {
-  ficha:    FichaEstudiante | null
+  ficha: FichaEstudiante | null
   colegios: ColegioAnterior[]        // array — un estudiante puede tener varios
   vivienda: ViviendaEstudiante | null
 }
 
 export interface UpsertExpedienteDTO {
-  ficha?:    UpsertFichaDTO["ficha"]
+  ficha?: UpsertFichaDTO["ficha"]
   colegios?: ReplaceColegiosDTO["colegios"]  // también array
   vivienda?: UpsertViviendaDTO["vivienda"]
 }
@@ -484,23 +564,28 @@ export interface UpsertExpedienteDTO {
 // =============================================================================
 
 export interface Contacto {
+
   contacto_id: number
   persona_id: number
   tipo_contacto: "telefono" | "celular" | "email" | "direccion" | "otro"
   valor: string
   es_principal: boolean
   activo: boolean
+
 }
 
 /**
  * contacto_id, es_principal y activo son opcionales —
  * el backend los asigna por defecto.
  */
-export interface ContactoCreationAttributes
-  extends Omit<Contacto, "contacto_id" | "es_principal" | "activo"> {
-  contacto_id?: number
-  es_principal?: boolean
-  activo?: boolean
+export interface ContactoCreationAttributes {
+  contacto: {
+    persona_id: number
+    tipo_contacto: "telefono" | "celular" | "email" | "direccion" | "otro"
+    valor: string
+    es_principal?: boolean
+    activo?: boolean
+  }
 }
 
 /**
@@ -518,6 +603,9 @@ export interface BulkCreateContactoDTO {
   contactos: ContactoCreationAttributes[]
 }
 
+
+
+
 // ============================================================================
 // Auth
 // ============================================================================
@@ -528,4 +616,17 @@ export interface AuthUser {
   username: string
   email: string
   roles: string[]
+}
+
+
+// ============================================================================
+// Tipos de rol
+// ============================================================================
+
+export enum ROLES {
+  ADMIN = "admin",
+  PROFESOR = "profesor",
+  ESTUDIANTE = "estudiante",
+  ADMINISTRATIVO = "administrativo",
+  MATRICULA = "matricula"
 }

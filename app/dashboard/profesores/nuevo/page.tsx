@@ -8,6 +8,7 @@ import { ProfilePhotoUploader } from "@/components/shared/profile-photo-uploader
 import { profesoresApi } from "@/lib/api/services/profesores"
 import { tiposArchivosApi } from "@/lib/api/services/tipos-archivos"
 import type { CreateProfesorInput } from "@/lib/types"
+import { ROLES } from "@/lib/types"
 
 export default function NuevoProfesorPage() {
   const router = useRouter()
@@ -19,7 +20,7 @@ export default function NuevoProfesorPage() {
   useEffect(() => {
     async function loadTipoArchivo() {
       try {
-        const response = await tiposArchivosApi.getAll()
+        const response = await tiposArchivosApi.getByRol(ROLES.PROFESOR)
         const fotoPerfil = response.data.find((tipo: any) => 
           tipo.nombre?.toLowerCase().includes("foto") || 
           tipo.nombre?.toLowerCase().includes("perfil")
@@ -59,7 +60,7 @@ export default function NuevoProfesorPage() {
       }
 
       const response = await profesoresApi.create(input)
-      const nuevaPersonaId = response.data.persona_id
+      const nuevaPersonaId = response.data?.persona.persona_id
 
       if (photoFile && nuevaPersonaId) {
         const photoFormData = new FormData()

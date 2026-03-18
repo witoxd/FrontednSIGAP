@@ -20,7 +20,7 @@ export const profesoresApi = {
       api.get<ApiResponse<ProfesorWitchPersonaDocumento[]>>(`/profesores/searchIndex/${encodeURIComponent(query)}`),
 
   create: (data: CreateProfesorInput) =>
-    api.post<ApiResponse>("/profesores/create", data),
+    api.post<ApiResponse<ProfesorWitchPersonaDocumento>>("/profesores/create", data),
 
   update: (id: number, data: Partial<CreateProfesorInput>) =>
     api.put<ApiResponse>(`/profesores/update/${id}`, data),

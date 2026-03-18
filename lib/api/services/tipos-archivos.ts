@@ -9,6 +9,9 @@ export const tiposArchivosApi = {
   getAll: () =>
     api.get<PaginatedApiResponse<CreateTipoArchivoInput>>("/tipos-archivos/getAll"),
 
+  getByRol: (rol: string) =>
+    api.get<PaginatedApiResponse<CreateTipoArchivoInput>>(`/tipos-archivos/getByRol?rol=${rol}`),
+
   getById: (id: number) =>
     api.get<ApiResponse<CreateTipoArchivoInput>>(`/tipos-archivos/getById/${id}`),
 
