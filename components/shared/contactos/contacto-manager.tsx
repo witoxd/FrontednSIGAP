@@ -138,10 +138,12 @@ export function ContactoManager({ personaId, disabled = false }: ContactoManager
 
     try {
       const dto: ContactoCreationAttributes = {
-        persona_id:    personaId,
-        tipo_contacto: fila.tipo_contacto,
-        valor:         fila.valor.trim(),
-        es_principal:  fila.es_principal,
+        contacto: {
+          persona_id:    personaId,
+          tipo_contacto: fila.tipo_contacto,
+          valor:         fila.valor.trim(),
+          es_principal:  fila.es_principal || false,
+        }
       }
 
       const res = await contactosApi.create(dto)
@@ -250,7 +252,7 @@ export function ContactoManager({ personaId, disabled = false }: ContactoManager
     }
   }
 
-  // ── Eliminar (DELETE /delete/:id) ──────────────────────────────────────────
+  // ── Eliminar Soft (DELETE /delete/:id) ──────────────────────────────────────────
 
   async function handleEliminar(contactoId: number) {
     actualizarFila(contactoId, { estado: "eliminando" })
