@@ -36,6 +36,7 @@ interface ArchivoUploaderProps {
   maxFileSize?: number // en MB
   tiposRequeridos?: number[] // IDs de tipos de archivo requeridos
   className?: string
+  contexto?: "estudiante" | "profesor" | "acudiente" | "administrativo" | "matricula"
 }
 
 // ============================================================================
@@ -50,6 +51,7 @@ export function ArchivoUploader({
   maxFileSize = 10, // 10MB por defecto
   tiposRequeridos = [],
   className = "",
+  contexto,
 }: ArchivoUploaderProps) {
   const [archivos, setArchivos] = useState<ArchivoItem[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -61,7 +63,7 @@ export function ArchivoUploader({
   // Cargar tipos de archivo disponibles
   const { data: tiposArchivos, isLoading: loadingTipos } = useSWR<
     PaginatedApiResponse<TipoArchivo>
-  >("/tipos-archivos/getAll?limit=100&offset=0", swrFetcher)
+  >(`/tipos-archivos/getByRol/${contexto}/`, swrFetcher)
 
   // ============================================================================
   // Funciones de validación

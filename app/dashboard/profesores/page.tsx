@@ -4,26 +4,31 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import { toast } from "sonner"
-import { Plus, Pencil, Trash2, Search } from "lucide-react"
+import { Plus, Search, Pencil, Trash2 } from "lucide-react"
 import { swrFetcher } from "@/lib/api/fetcher"
 import { profesoresApi } from "@/lib/api/services/profesores"
 import { DataTable, type Column } from "@/components/shared/data-table"
 import { StatusBadge } from "@/components/shared/status-badge"
 import type { PaginatedApiResponse, ProfesorWitchPersonaDocumento } from "@/lib/types"
 
+const PAGE_SIZE = 20
+
 export default function ProfesoresPage() {
   const router = useRouter()
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState("")
-  const limit = 20
 
   const { data, isLoading, mutate } = useSWR<PaginatedApiResponse<ProfesorWitchPersonaDocumento>>(
-    `/profesores/getAll?limit=${limit}&offset=${page * limit}`,
+    `/profesores/getAll?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}`,
     swrFetcher
   )
 
   const columns: Column<ProfesorWitchPersonaDocumento>[] = [
-    { key: "profesor_id", header: "ID", render: (p) => p.profesor.profesor_id },
+    {
+      key: "profesor_id",
+      header: "ID",
+      render: (p) => p.profesor.profesor_id,
+    },
     {
       key: "nombres",
       header: "Nombre completo",
@@ -37,46 +42,41 @@ export default function ProfesoresPage() {
       render: (p) => p.persona.numero_documento ?? "—",
     },
     {
-      key: "estado",
-      header: "Estado",
-      render: (p) => <StatusBadge status={p.profesor.estado} />,
-    },
-    {
       key: "fecha_contratacion",
-      header: "Contratacion",
+      header: "Contratación",
       render: (p) =>
         p.profesor.fecha_contratacion
           ? new Date(p.profesor.fecha_contratacion).toLocaleDateString("es-CO")
           : "—",
     },
+    {
+      key: "estado",
+      header: "Estado",
+      render: (p) => <StatusBadge status={p.profesor.estado} />,
+    },
   ]
 
-  const filtered = data?.data?.filter((p) => {
-    if (!search) return true
-    const full = `${p.persona.nombres ?? ""} ${p.persona.apellido_paterno ?? ""} ${p.persona.numero_documento ?? ""}`.toLowerCase()
-    return full.includes(search.toLowerCase())
-  }) ?? []
+  const filtered =
+    data?.data?.filter((p) => {
+      if (!search) return true
+      const full = `${p.persona.nombres ?? ""} ${p.persona.apellido_paterno ?? ""} ${p.persona.numero_documento ?? ""}`.toLowerCase()
+      return full.includes(search.toLowerCase())
+    }) ?? []
 
   async function handleDelete(id: number) {
-    if (!confirm("Esta seguro de eliminar este profesor?")) return
+    if (!confirm("¿Seguro de eliminar este profesor?")) return
     try {
       await profesoresApi.delete(id)
       toast.success("Profesor eliminado")
       mutate()
-    } catch (err: unknown) {
+    } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al eliminar")
     }
   }
 
-  function handleCreate() {
-    router.push("/dashboard/profesores/nuevo")
-  }
-
-  function handleEdit(p: ProfesorWitchPersonaDocumento) {
-    router.push(`/dashboard/profesores/${p.profesor.profesor_id}/editar`)
-  }
-
-  const totalPages = data?.pagination ? Math.ceil(data.pagination.total / limit) : 0
+  const totalPages = data?.pagination
+    ? Math.ceil(data.pagination.total / PAGE_SIZE)
+    : 0
 
   return (
     <div className="flex flex-col gap-6">
@@ -84,11 +84,11 @@ export default function ProfesoresPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Profesores</h1>
           <p className="text-sm text-muted-foreground">
-            Gestion de profesores registrados
+            Gestión de profesores registrados
           </p>
         </div>
         <button
-          onClick={handleCreate}
+          onClick={() => router.push("/dashboard/profesores/nuevo")}
           className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -116,14 +116,16 @@ export default function ProfesoresPage() {
           actions={(p) => (
             <div className="flex items-center justify-end gap-1">
               <button
-                onClick={() => handleEdit(p)}
+                onClick={() =>
+                  router.push(`/dashboard/profesores/${p.profesor.profesor_id}/editar`)
+                }
                 className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 aria-label="Editar profesor"
               >
                 <Pencil className="w-4 h-4" />
               </button>
               <button
-                onClick={() => handleDelete(p.profesor.profesor_id)}
+                onClick={() => handleDelete(p.profesor.profesor_id!)}
                 className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
                 aria-label="Eliminar profesor"
               >
@@ -132,11 +134,11 @@ export default function ProfesoresPage() {
             </div>
           )}
         />
-        
+
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-border px-6 py-3">
             <p className="text-sm text-muted-foreground">
-              Pagina {page + 1} de {totalPages}
+              Página {page + 1} de {totalPages}
             </p>
             <div className="flex gap-2">
               <button

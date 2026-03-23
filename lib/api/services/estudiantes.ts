@@ -4,6 +4,7 @@ import type {
   PaginatedApiResponse,
   EstudianteWithPersonaDocumento,
   CreateEstudianteInput,
+  AsignacionConEstudiante,
 } from "@/lib/types"
 
 export const estudiantesApi = {
@@ -27,11 +28,15 @@ export const estudiantesApi = {
     api.get<ApiResponse<EstudianteWithPersonaDocumento[]>>(`/estudiantes/searchIndex/${encodeURIComponent(query)}`),
 
   create: (data: CreateEstudianteInput) =>
-    api.post<ApiResponse>("/estudiantes/create", data),
+    api.post<ApiResponse<EstudianteWithPersonaDocumento>>("/estudiantes/create", data),
 
   update: (id: number, data: Partial<CreateEstudianteInput>) =>
     api.put<ApiResponse>(`/estudiantes/update/${id}`, data),
 
   delete: (id: number) =>
     api.delete<ApiResponse>(`/estudiantes/delete/${id}`),
+
+    getEstudiantesByAcudiente: (acudienteId: number) =>
+    api.get<ApiResponse<AsignacionConEstudiante[]>>(`/estudiantes/${acudienteId}/acudientes`),
 }
+

@@ -197,12 +197,13 @@ export interface EstudianteResumen {
   apellido_materno?: string
   numero_documento: string
   /** ID real de la fila en tabla estudiantes */
-  estudiante_id?: number
+  estudiante_id: number
 }
 
 
-export interface AsignacionConEstudiante extends AcudienteEstudiante {
+export interface AsignacionConEstudiante {
   estudiante: EstudianteResumen
+  relacion: AcudienteEstudiante
 }
 
 

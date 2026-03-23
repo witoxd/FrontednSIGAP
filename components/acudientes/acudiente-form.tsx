@@ -8,8 +8,8 @@ import { toast } from "sonner"
 import { acudientesApi } from "@/lib/api/services/acudientes"
 import { PersonaForm, type PersonaFormData } from "@/components/forms/persona-form"
 import { ContactoManager } from "@/components/shared/contactos/contacto-manager"
-import { EstudianteSearchModal } from "@/components/shared/estudiante-search-modal"
-
+import { EstudianteSearchModal } from "@/components/estudiantes/estudiante-search-modal"
+import { estudiantesApi } from "@/lib/api/services/estudiantes"
 import type {
   AcudienteWithPersona,
   AsignacionConEstudiante,
@@ -39,9 +39,9 @@ function acudienteFormVacio(): AcudienteFormData {
 
 function acudienteFromApi(a: AcudienteWithPersona): AcudienteFormData {
   return {
-    parentesco:    (a as any).parentesco    ?? "",
-    ocupacion:     (a as any).ocupacion     ?? "",
-    nivel_estudio: (a as any).nivel_estudio ?? "",
+    parentesco:    (a.acudiente as any).parentesco    ?? "",
+    ocupacion:     (a.acudiente as any).ocupacion     ?? "",
+    nivel_estudio: (a.acudiente as any).nivel_estudio ?? "",
   }
 }
 
@@ -133,7 +133,7 @@ export function AcudienteForm({ modo, acudienteId }: AcudienteFormProps) {
       try {
         const [acudienteRes, asignacionesRes] = await Promise.all([
           acudientesApi.getById(acudienteId!),
-          acudientesApi.getEstudiantes(acudienteId!),
+          estudiantesApi.getEstudiantesByAcudiente(acudienteId!),
         ])
 
         const acudiente = acudienteRes.data as AcudienteWithPersona
@@ -218,18 +218,20 @@ export function AcudienteForm({ modo, acudienteId }: AcudienteFormProps) {
       },
     })
 
-    const nueva = res.data as AsignacionConEstudiante & { acudiente_estudiante_id?: number }
+    const nueva = res.data as unknown as AsignacionConEstudiante & { acudiente_estudiante_id?: number }
 
     // Agregamos la fila optimistamente — si el backend devuelve el id real, perfecto.
     // Si no, usamos un id temporal negativo para la key de React.
     setAsignaciones((prev) => [
       ...prev,
       {
-        acudiente_estudiante_id: nueva?.acudiente_estudiante_id ?? -(Date.now()),
-        acudiente_id:   idAcudiente,
-        estudiante_id:  estudianteId,
-        tipo_relacion:  tipoRelacion,
-        es_principal:   asignaciones.length === 0,
+        relacion: {
+          acudiente_estudiante_id: nueva?.acudiente_estudiante_id ?? -(Date.now()),
+          acudiente_id:   idAcudiente,
+          estudiante_id:  estudianteId,
+          tipo_relacion:  tipoRelacion,
+          es_principal:   asignaciones.length === 0,
+        },
         estudiante,
         _uiEstado: "guardado",
       },
@@ -245,23 +247,23 @@ export function AcudienteForm({ modo, acudienteId }: AcudienteFormProps) {
     // Optimistic: marcamos como "eliminando"
     setAsignaciones((prev) =>
       prev.map((a) =>
-        a.acudiente_estudiante_id === fila.acudiente_estudiante_id
+        a.relacion.acudiente_estudiante_id === fila.relacion.acudiente_estudiante_id
           ? { ...a, _uiEstado: "eliminando" }
           : a
       )
     )
 
     try {
-      await acudientesApi.removeFromEstudiante(fila.estudiante_id, idAcudiente)
+      await acudientesApi.removeFromEstudiante(fila.estudiante.estudiante_id, idAcudiente)
       setAsignaciones((prev) =>
-        prev.filter((a) => a.acudiente_estudiante_id !== fila.acudiente_estudiante_id)
+        prev.filter((a) => a.relacion.acudiente_estudiante_id !== fila.relacion.acudiente_estudiante_id)
       )
       toast.success("Estudiante desasignado")
     } catch (err) {
       // Revertimos el estado si falla
       setAsignaciones((prev) =>
         prev.map((a) =>
-          a.acudiente_estudiante_id === fila.acudiente_estudiante_id
+          a.relacion.acudiente_estudiante_id === fila.relacion.acudiente_estudiante_id
             ? { ...a, _uiEstado: "guardado" }
             : a
         )
@@ -280,7 +282,7 @@ export function AcudienteForm({ modo, acudienteId }: AcudienteFormProps) {
   }
 
   // ── IDs de estudiantes ya asignados (para deshabilitar en el modal) ────────
-  const estudiantesAsignadosIds = asignaciones.map((a) => a.estudiante_id)
+  const estudiantesAsignadosIds = asignaciones.map((a) => a.estudiante.estudiante_id)
 
   // ── Render principal ───────────────────────────────────────────────────────
   return (
@@ -484,11 +486,11 @@ export function AcudienteForm({ modo, acudienteId }: AcudienteFormProps) {
                   const eliminando = fila._uiEstado === "eliminando"
                   return (
                     <tr
-                      key={fila.acudiente_estudiante_id}
+                      key={fila.estudiante.estudiante_id}
                       className={`transition-opacity ${eliminando ? "opacity-40" : ""}`}
                     >
                       <td className="px-4 py-2 text-center">
-                        {fila.es_principal && (
+                        {fila.relacion.es_principal && (
                           <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400 mx-auto" />
                         )}
                       </td>
@@ -499,7 +501,7 @@ export function AcudienteForm({ modo, acudienteId }: AcudienteFormProps) {
                         {fila.estudiante.numero_documento}
                       </td>
                       <td className="px-4 py-2 text-muted-foreground">
-                        {fila.tipo_relacion ?? "—"}
+                        {fila.relacion.tipo_relacion ?? "—"}
                       </td>
                       <td className="px-4 py-2 text-center">
                         {eliminando ? (

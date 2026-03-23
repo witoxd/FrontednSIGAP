@@ -32,20 +32,13 @@ export const acudientesApi = {
 
   // ── Estudiantes asignados ───────────────────────────────────────────────────
 
-  /**
-   * Obtiene los estudiantes asignados a un acudiente.
-   *
-   * ⚠️  ENDPOINT PENDIENTE — el backend aún no lo implementa.
-   * Cuando esté listo: GET /acudientes/:id/estudiantes
-   * Por ahora retorna [] sin hacer request real.
-   */
-  getEstudiantes: async (_acudienteId: number): Promise<ApiResponse<AsignacionConEstudiante[]>> => {
-    console.warn(
-      "[acudientesApi.getEstudiantes] Endpoint /acudientes/:id/estudiantes aún no implementado. " +
-      "Retornando array vacío hasta que el backend esté listo."
-    )
-    return { data: [], message: "pendiente", success: true }
-  },
+
+    getEstudiantes: async (acudienteId: number) =>
+    api.get<ApiResponse<AsignacionConEstudiante[]>>(`/acudientes/${acudienteId}/estudiantes`),
+
+    getByEstudiante: (estudianteId: number) =>
+    api.get<ApiResponse<any[]>>(`/acudientes/${estudianteId}/estudiantes`),
+ 
 
   // ── Asignación ──────────────────────────────────────────────────────────────
 

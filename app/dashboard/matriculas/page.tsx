@@ -12,11 +12,11 @@ import { Modal } from "@/components/shared/modal"
 import type {
   PaginatedApiResponse,
   MatriculaConRelaciones,
-  EstudianteConPersona,
-  ProfesorConPersona,
   Curso,
   Jornada,
 } from "@/lib/types"
+import { estudiantesApi } from "@/lib/api/services/estudiantes"
+import { profesoresApi } from "@/lib/api/services/profesores"
 
 export default function MatriculasPage() {
   const [page, setPage] = useState(0)
@@ -93,7 +93,7 @@ export default function MatriculasPage() {
     profesor_id: number
     curso_id: number
     jornada_id: number
-    estado?: string
+    estado: "retirada" | "activo" | "finalizada"
     anio_egreso?: number
   }) {
     if (!editingId) return
@@ -227,14 +227,10 @@ function MatriculaForm({
   const [estado, setEstado] = useState(initialData?.estado ?? "activa")
   const [anioEgreso, setAnioEgreso] = useState(initialData?.anio_egreso ?? new Date().getFullYear())
 
-  const { data: estudiantes } = useSWR<PaginatedApiResponse<EstudianteConPersona>>(
-    "/estudiantes/getAll?limit=200&offset=0",
-    swrFetcher
-  )
-  const { data: profesores } = useSWR<PaginatedApiResponse<ProfesorConPersona>>(
-    "/profesores/getAll?limit=200&offset=0",
-    swrFetcher
-  )
+  const { data: estudiantes } = estudiantesApi.getAll
+
+  const { data: profesores } = profesoresApi.getAll
+
   const { data: cursos } = useSWR<PaginatedApiResponse<Curso>>(
     "/cursos/getAll?limit=200&offset=0",
     swrFetcher
