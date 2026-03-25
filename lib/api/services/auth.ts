@@ -1,5 +1,5 @@
 import { api } from "../client"
-import type { ApiResponse, LoginResponse } from "@/lib/types"
+import type { ApiResponse, LoginResponse, CreateUsuarioInput, Usuario } from "@/lib/types"
 
 export const authApi = {
   login: (email: string, contraseña: string) =>
@@ -13,17 +13,29 @@ export const authApi = {
       newPassword,
     }),
 
-  register: (data: {
-    email: string
-    username: string
-    contraseña: string
-    nombres: string
-    apellido_paterno?: string
-    apellido_materno?: string
-    tipo_documento_id: number
-    numero_documento: string
-    fecha_nacimiento: string
-    genero?: string
-    role: string
-  }) => api.post<ApiResponse>("/auth/register", data),
+  // register: (data: {
+  //   email: string
+  //   username: string
+  //   contraseña: string
+  //   nombres: string
+  //   apellido_paterno?: string
+  //   apellido_materno?: string
+  //   tipo_documento_id: number
+  //   numero_documento: string
+  //   fecha_nacimiento: string
+  //   genero?: string
+  //   role: string
+  // }) => api.post<ApiResponse>('/auth/register', data),
+
+  resetPassword: (personaId: number) =>
+    api.post<ApiResponse>('auth/resetPassword', { personaId }),
+
+  createUser: (data: Usuario, personaId: number) =>
+  api.post<ApiResponse>(`/auth/create-user/${personaId}`, data),
+
+  createUserPersona: (data: CreateUsuarioInput) =>
+    api.post<ApiResponse>('/auth/users/with-persona', data),
+
 }
+
+
