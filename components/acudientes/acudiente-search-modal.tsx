@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Search, X, Loader2, UserPlus } from "lucide-react"
-import { api } from "@/lib/api/client"
+import { acudientesApi } from "@/lib/api/services/acudientes"
 import type { AcudienteWithPersona } from "@/lib/types"
 
 // ── Constantes ────────────────────────────────────────────────────────────────
@@ -93,7 +93,7 @@ export function AcudienteSearchModal({
     setBuscando(true)
     setError(null)
     try {
-      const res = await api.get<any>(`/acudientes/searchIndex/${encodeURIComponent(q)}`)
+      const res  = await acudientesApi.searchIndex(q)
       const raw  = res.data
       const lista = Array.isArray(raw) ? raw : raw ? [raw] : []
       setResultados(lista.map(mapSearchResult))

@@ -30,6 +30,9 @@ export const acudientesApi = {
   delete: (acudienteId: number) =>
     api.delete<ApiResponse<void>>(`/acudientes/delete/${acudienteId}`),
 
+  searchIndex: (query: string) =>
+    api.get<ApiResponse<any[]>>(`/acudientes/searchIndex/${encodeURIComponent(query)}`),
+
   // ── Estudiantes asignados ───────────────────────────────────────────────────
 
 

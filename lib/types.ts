@@ -110,6 +110,20 @@ export interface Usuario {
   fecha_creacion: string
 }
 
+export interface User {
+  persona_id: number
+  username: string
+  email: string
+  contraseña: string
+}
+
+export interface CreateUsuarioInput {
+  persona: Persona
+  user: User
+}
+
+
+
 // =============================================================================
 // ACUDIENTES
 // Agregar al final de lib/types.ts

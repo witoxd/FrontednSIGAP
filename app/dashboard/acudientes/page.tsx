@@ -1,41 +1,79 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import useSWR from "swr"
 import { toast } from "sonner"
-import { Plus, Search, Pencil, Trash2, X, ViewIcon, View } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, X, Loader2, View } from "lucide-react"
+import { swrFetcher } from "@/lib/api/fetcher"
 import { acudientesApi } from "@/lib/api/services/acudientes"
 import { DataTable, type Column } from "@/components/shared/data-table"
 import type { PaginatedApiResponse, AcudienteWithPersona } from "@/lib/types"
-import useSWR from "swr"
-import { swrFetcher } from "@/lib/api/fetcher"
+
+const PAGE_SIZE = 20
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function nombreCompleto(a: AcudienteWithPersona) {
-  return [
-    a.persona.nombres,
-    a.persona.apellido_paterno,
-    a.persona.apellido_materno,
-  ]
+  return [a.persona.nombres, a.persona.apellido_paterno, a.persona.apellido_materno]
     .filter(Boolean)
     .join(" ")
 }
 
-const PAGE_SIZE = 20
+/**
+ * Mapea la respuesta de searchIndex al shape AcudienteWithPersona.
+ * El endpoint /acudientes/searchIndex devuelve { persona: {...}, acudiente: {...} }.
+ */
+function mapSearchResult(raw: any): AcudienteWithPersona {
+  return {
+    persona:  raw.persona  ?? raw,
+    acudiente: raw.acudiente ?? raw,
+  }
+}
 
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export default function AcudientesPage() {
   const router = useRouter()
-  const [page, setPage] = useState(0)
-  const [search, setSearch] = useState("")
+  const [page, setPage]                 = useState(0)
+  const [search, setSearch]             = useState("")
+  const [buscando, setBuscando]         = useState(false)
+  const [searchResults, setSearchResults] =
+    useState<AcudienteWithPersona[] | null>(null)
 
+  // ── Carga paginada normal ─────────────────────────────────────────────────
   const { data, isLoading, mutate } = useSWR<PaginatedApiResponse<AcudienteWithPersona>>(
     `/acudientes/getAll?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}`,
     swrFetcher
   )
 
+  // ── Búsqueda con debounce 500 ms ──────────────────────────────────────────
+  useEffect(() => {
+    const id = setTimeout(async () => {
+      if (search.trim().length < 3) {
+        setSearchResults(null)
+        return
+      }
+
+      setBuscando(true)
+      try {
+        // acudientesApi.searchIndex usa GET /acudientes/searchIndex/:query
+        const res = await acudientesApi.searchIndex(search.trim())
+        if (res.success && res.data) {
+          const lista = Array.isArray(res.data) ? res.data : res.data ? [res.data] : []
+          setSearchResults(lista.map(mapSearchResult))
+        }
+      } catch {
+        toast.error("Error al buscar acudientes")
+      } finally {
+        setBuscando(false)
+      }
+    }, 500)
+
+    return () => clearTimeout(id)
+  }, [search])
+
+  // ── Columnas ──────────────────────────────────────────────────────────────
   const columns: Column<AcudienteWithPersona>[] = [
     {
       key: "nombre",
@@ -59,33 +97,37 @@ export default function AcudientesPage() {
     },
   ]
 
-  const filtered =
-    data?.data?.filter((a) => {
-      if (!search) return true
-      const lower = search.toLowerCase()
-      return (
-        nombreCompleto(a).toLowerCase().includes(lower) ||
-        a.persona.numero_documento?.toLowerCase().includes(lower)
-      )
-    }) ?? []
-
+  // ── Eliminar ──────────────────────────────────────────────────────────────
   async function handleDelete(a: AcudienteWithPersona) {
     if (!confirm(`¿Eliminar a ${nombreCompleto(a)}?`)) return
     try {
       await acudientesApi.delete(a.acudiente.acudiente_id)
       toast.success("Acudiente eliminado")
       mutate()
+      if (searchResults !== null) clearSearch()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al eliminar")
     }
   }
 
-  const totalPages = data?.pagination
+  function clearSearch() {
+    setSearch("")
+    setSearchResults(null)
+    setPage(0)
+  }
+
+  // ── Datos a mostrar ───────────────────────────────────────────────────────
+  const displayData  = searchResults !== null ? searchResults : data?.data ?? []
+  const isSearchMode = searchResults !== null
+  const totalPages   = data?.pagination
     ? Math.ceil(data.pagination.total / PAGE_SIZE)
     : 0
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-6">
+
+      {/* Encabezado */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Acudientes</h1>
@@ -107,65 +149,78 @@ export default function AcudientesPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Buscar por nombre o documento..."
+          placeholder="Buscar en todos los acudientes (min. 3 caracteres)..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="h-10 w-full rounded-lg border border-input bg-card pl-10 pr-8 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          className="h-10 w-full rounded-lg border border-input bg-card pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
         {search && (
           <button
-            onClick={() => setSearch("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            onClick={clearSearch}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Limpiar búsqueda"
           >
             <X className="w-4 h-4" />
           </button>
         )}
       </div>
 
+      {/* Estado: buscando en backend */}
+      {buscando && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span>Buscando en toda la base de datos...</span>
+        </div>
+      )}
+
+      {/* Resultado de búsqueda */}
+      {isSearchMode && !buscando && (
+        <div className="flex items-center justify-between rounded-lg bg-accent/50 px-4 py-2 text-sm">
+          <span className="text-accent-foreground">
+            Se encontraron <strong>{displayData.length}</strong> resultado(s) para "{search}"
+          </span>
+          <button
+            onClick={clearSearch}
+            className="text-accent-foreground hover:text-foreground font-medium transition-colors"
+          >
+            Ver todos
+          </button>
+        </div>
+      )}
+
       {/* Tabla */}
       <div className="rounded-xl border border-border bg-card">
         <DataTable
           columns={columns}
-          data={filtered}
-          isLoading={isLoading}
-          emptyMessage="No hay acudientes registrados"
+          data={displayData}
+          isLoading={isLoading && !isSearchMode}
+          emptyMessage={
+            isSearchMode
+              ? `No se encontraron acudientes que coincidan con "${search}"`
+              : "No hay acudientes registrados"
+          }
           actions={(a) => (
             <div className="flex items-center justify-end gap-1">
               <button
-                onClick={() =>
-                  router.push(
-                    `/dashboard/acudientes/${a.acudiente.acudiente_id}/editar`
-                  )
-                }
+                onClick={() => router.push(`/dashboard/acudientes/${a.acudiente.acudiente_id}/editar`)}
                 className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 title="Editar"
               >
                 <Pencil className="w-4 h-4" />
               </button>
               <button
-                onClick={() =>
-                  router.push(
-                    `/dashboard/acudientes/destalles/${a.acudiente.acudiente_id}`
-                  )
-                }
+                onClick={() => router.push(`/dashboard/acudientes/detalles/${a.acudiente.acudiente_id}`)}
                 className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 title="Ver detalles"
               >
                 <View className="w-4 h-4" />
               </button>
-{/*              <button
-                onClick={() => handleDelete(a)}
-                className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                title="Eliminar"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-              */}
             </div>
           )}
         />
 
-        {totalPages > 1 && (
+        {/* Paginación — solo en modo normal */}
+        {!isSearchMode && totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-border px-6 py-3">
             <p className="text-sm text-muted-foreground">
               Página {page + 1} de {totalPages} ({data?.pagination.total ?? 0} registros)
