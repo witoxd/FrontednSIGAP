@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import { toast } from "sonner"
-import { Plus, Search, Pencil, Trash2, X, Loader2 } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, X, Loader2, ViewIcon } from "lucide-react"
 import { swrFetcher } from "@/lib/api/fetcher"
 import { profesoresApi } from "@/lib/api/services/profesores"
 import { DataTable, type Column } from "@/components/shared/data-table"
@@ -21,7 +21,7 @@ const PAGE_SIZE = 20
  */
 function mapSearchResult(raw: any): ProfesorWitchPersonaDocumento {
   return {
-    persona:  raw.persona  ?? raw,
+    persona: raw.persona ?? raw,
     profesor: raw.profesor ?? raw,
   }
 }
@@ -30,9 +30,9 @@ function mapSearchResult(raw: any): ProfesorWitchPersonaDocumento {
 
 export default function ProfesoresPage() {
   const router = useRouter()
-  const [page, setPage]                 = useState(0)
-  const [search, setSearch]             = useState("")
-  const [buscando, setBuscando]         = useState(false)
+  const [page, setPage] = useState(0)
+  const [search, setSearch] = useState("")
+  const [buscando, setBuscando] = useState(false)
   const [searchResults, setSearchResults] =
     useState<ProfesorWitchPersonaDocumento[] | null>(null)
 
@@ -119,6 +119,18 @@ export default function ProfesoresPage() {
     }
   }
 
+  function handleEdit(pro: ProfesorWitchPersonaDocumento) {
+    router.push(`/dashboard/profesores/${pro.profesor.profesor_id}/editar`)
+  }
+
+  function handleCreate() {
+    router.push("/dashboard/profesores/nuevo")
+  }
+
+  function viewDetails(pro: ProfesorWitchPersonaDocumento) {
+    router.push(`/dashboard/profesores/${pro.profesor.profesor_id}/detalles`)
+  }
+
   function clearSearch() {
     setSearch("")
     setSearchResults(null)
@@ -126,9 +138,9 @@ export default function ProfesoresPage() {
   }
 
   // ── Datos a mostrar ───────────────────────────────────────────────────────
-  const displayData  = searchResults !== null ? searchResults : data?.data ?? []
+  const displayData = searchResults !== null ? searchResults : data?.data ?? []
   const isSearchMode = searchResults !== null
-  const totalPages   = data?.pagination
+  const totalPages = data?.pagination
     ? Math.ceil(data.pagination.total / PAGE_SIZE)
     : 0
 
@@ -211,48 +223,56 @@ export default function ProfesoresPage() {
           actions={(p) => (
             <div className="flex items-center justify-end gap-1">
               <button
-                onClick={() => router.push(`/dashboard/profesores/${p.profesor.profesor_id}/editar`)}
+                onClick={() => handleEdit(p)}
                 className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 aria-label="Editar profesor"
               >
                 <Pencil className="w-4 h-4" />
               </button>
               <button
+                onClick={() => viewDetails(p)}
+                className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                aria-label="Ver detalles"
+              >
+                <ViewIcon className="w-4 h-4" />
+              </button>
+
+              { /*             <button
                 onClick={() => handleDelete(p.profesor.profesor_id!)}
                 className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
                 aria-label="Eliminar profesor"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              >  
+              <Trash2 className="w-4 h-4" />
+            </button> */}
             </div>
           )}
         />
 
-        {/* Paginación — solo en modo normal */}
-        {!isSearchMode && totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-border px-6 py-3">
-            <p className="text-sm text-muted-foreground">
-              Página {page + 1} de {totalPages} ({data?.pagination.total ?? 0} registros)
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPage(Math.max(0, page - 1))}
-                disabled={page === 0}
-                className="h-8 rounded-lg border border-border px-3 text-sm text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
-              >
-                Anterior
-              </button>
-              <button
-                onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
-                disabled={page >= totalPages - 1}
-                className="h-8 rounded-lg border border-border px-3 text-sm text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
-              >
-                Siguiente
-              </button>
-            </div>
+      {/* Paginación — solo en modo normal */}
+      {!isSearchMode && totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-border px-6 py-3">
+          <p className="text-sm text-muted-foreground">
+            Página {page + 1} de {totalPages} ({data?.pagination.total ?? 0} registros)
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage(Math.max(0, page - 1))}
+              disabled={page === 0}
+              className="h-8 rounded-lg border border-border px-3 text-sm text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+            >
+              Anterior
+            </button>
+            <button
+              onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+              disabled={page >= totalPages - 1}
+              className="h-8 rounded-lg border border-border px-3 text-sm text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+            >
+              Siguiente
+            </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
+    </div >
   )
 }

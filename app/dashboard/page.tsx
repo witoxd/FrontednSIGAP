@@ -4,14 +4,14 @@ import useSWR from "swr"
 import { swrFetcher } from "@/lib/api/fetcher"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { Users, GraduationCap, BookOpen, ClipboardList, Loader2 } from "lucide-react"
-import type { PaginatedApiResponse, EstudianteConPersona, ProfesorConPersona, Curso, MatriculaConRelaciones } from "@/lib/types"
+import type { PaginatedApiResponse, EstudianteWithPersonaDocumento, ProfesorWitchPersonaDocumento, Curso, MatriculaConRelaciones } from "@/lib/types"
 
 export default function DashboardPage() {
-  const { data: estudiantesData, isLoading: loadingEst } = useSWR<PaginatedApiResponse<EstudianteConPersona>>(
+  const { data: estudiantesData, isLoading: loadingEst } = useSWR<PaginatedApiResponse<EstudianteWithPersonaDocumento>>(
     "/estudiantes/getAll?limit=1&offset=0",
     swrFetcher
   )
-  const { data: profesoresData, isLoading: loadingProf } = useSWR<PaginatedApiResponse<ProfesorConPersona>>(
+  const { data: profesoresData, isLoading: loadingProf } = useSWR<PaginatedApiResponse<ProfesorWitchPersonaDocumento>>(
     "/profesores/getAll?limit=1&offset=0",
     swrFetcher
   )

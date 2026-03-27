@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import { toast } from "sonner"
-import { Plus, Search, Pencil, Trash2, X, Loader2, View } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, X, Loader2, ViewIcon } from "lucide-react"
 import { swrFetcher } from "@/lib/api/fetcher"
 import { acudientesApi } from "@/lib/api/services/acudientes"
 import { DataTable, type Column } from "@/components/shared/data-table"
@@ -46,6 +46,14 @@ export default function AcudientesPage() {
     `/acudientes/getAll?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}`,
     swrFetcher
   )
+
+  function editAcudiente(a: AcudienteWithPersona){
+    router.push(`/dashboard/acudientes/${a.acudiente.acudiente_id}/editar`)
+  }
+
+  function viewDetails(a: AcudienteWithPersona){
+router.push(`/dashboard/acudientes/${a.acudiente.acudiente_id}/detalles`)
+  }
 
   // ── Búsqueda con debounce 500 ms ──────────────────────────────────────────
   useEffect(() => {
@@ -202,18 +210,18 @@ export default function AcudientesPage() {
           actions={(a) => (
             <div className="flex items-center justify-end gap-1">
               <button
-                onClick={() => router.push(`/dashboard/acudientes/${a.acudiente.acudiente_id}/editar`)}
+                onClick={() => editAcudiente(a)}
                 className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 title="Editar"
               >
                 <Pencil className="w-4 h-4" />
               </button>
               <button
-                onClick={() => router.push(`/dashboard/acudientes/detalles/${a.acudiente.acudiente_id}`)}
+                onClick={() => viewDetails(a)}
                 className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 title="Ver detalles"
               >
-                <View className="w-4 h-4" />
+                <ViewIcon className="w-4 h-4" />
               </button>
             </div>
           )}

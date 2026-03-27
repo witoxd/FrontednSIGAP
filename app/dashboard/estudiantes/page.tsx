@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import { toast } from "sonner"
-import { Plus, Pencil, Trash2, Search, X, Loader2 } from "lucide-react"
+import { Plus, Pencil, Trash2, Search, X, Loader2, ViewIcon } from "lucide-react"
 import { swrFetcher } from "@/lib/api/fetcher"
 import { estudiantesApi } from "@/lib/api/services/estudiantes"
 import { DataTable, type Column } from "@/components/shared/data-table"
@@ -25,10 +25,11 @@ export default function EstudiantesPage() {
   )
 
   const columns: Column<EstudianteWithPersonaDocumento>[] = [
-    { key: "estudiante_id",
-       header: "IDs",
-       render: (est) => est.estudiante.estudiante_id
-       },
+    {
+      key: "estudiante_id",
+      header: "IDs",
+      render: (est) => est.estudiante.estudiante_id
+    },
     {
       key: "nombres",
       header: "Nombre completo",
@@ -72,20 +73,20 @@ export default function EstudiantesPage() {
       try {
         // Usar el endpoint de búsqueda de personas
         const response = await estudiantesApi.searchIndex(search.trim())
-        
+
         if (response.success && response.data) {
           // Obtener los IDs de personas encontradas
           const personaIds = response.data.map((p) => p.persona.persona_id)
-          
+
           // Obtener todos los estudiantes para filtrar
           const estudiantesResponse = await estudiantesApi.getAll(1000, 0)
-          
+
           if (estudiantesResponse.success && estudiantesResponse.data) {
             // Filtrar estudiantes que coincidan con las personas encontradas
             const estudiantesEncontrados = estudiantesResponse.data.filter((est) =>
               personaIds.includes(est.persona.persona_id)
             )
-            
+
             setSearchResults(estudiantesEncontrados.length > 0 ? estudiantesEncontrados : [])
           }
         }
@@ -133,6 +134,10 @@ export default function EstudiantesPage() {
 
   function handleCreate() {
     router.push("/dashboard/estudiantes/nuevo")
+  }
+
+  function viewDetails(est: EstudianteWithPersonaDocumento) {
+    router.push(`/dashboard/estudiantes/${est.estudiante.estudiante_id}/detalles`)
   }
 
   const totalPages = data?.pagination ? Math.ceil(data.pagination.total / limit) : 0
@@ -220,12 +225,20 @@ export default function EstudiantesPage() {
                 <Pencil className="w-4 h-4" />
               </button>
               <button
+                onClick={() => viewDetails(est)}
+                className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                aria-label="Ver detalles"
+              >
+                <ViewIcon className="w-4 h-4" />
+              </button>
+
+              {/*              <button
                 onClick={() => handleDelete(est.estudiante.estudiante_id)}
                 className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
                 aria-label="Eliminar estudiante"
               >
                 <Trash2 className="w-4 h-4" />
-              </button>
+              </button> */}
             </div>
           )}
         />

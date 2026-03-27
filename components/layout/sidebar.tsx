@@ -20,13 +20,13 @@ import {
  * El resto (estilos, collapse, active state) se genera automáticamente.
  */
 const navItems = [
-  { href: "/dashboard",             label: "Dashboard",   icon: LayoutDashboard },
-  { href: "/dashboard/estudiantes", label: "Estudiantes", icon: GraduationCap   },
-  { href: "/dashboard/acudientes",  label: "Acudientes",  icon: ContactRound    },
-  { href: "/dashboard/profesores",  label: "Profesores",  icon: Users           },
-  { href: "/dashboard/cursos",      label: "Cursos",      icon: BookOpen        },
-  { href: "/dashboard/matriculas",  label: "Matrículas",  icon: ClipboardList   },
-  { href: "/dashboard/usuarios",    label: "Usuarios",    icon: UserCog         },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/estudiantes", label: "Estudiantes", icon: GraduationCap },
+  { href: "/dashboard/acudientes", label: "Acudientes", icon: ContactRound },
+  { href: "/dashboard/profesores", label: "Profesores", icon: Users },
+  { href: "/dashboard/cursos", label: "Cursos", icon: BookOpen },
+  { href: "/dashboard/matriculas", label: "Matrículas", icon: ClipboardList },
+  { href: "/dashboard/usuarios", label: "Usuarios", icon: UserCog },
 ] as const
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -49,9 +49,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   return (
     <aside
-      className={`flex flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 ${
-        collapsed ? "w-16" : "w-64"
-      }`}
+      className={`flex flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 ${collapsed ? "w-16" : "w-64"
+        }`}
     >
       {/* ── Header / Logo ── */}
       <div className="flex h-16 items-center justify-between px-4 border-b border-sidebar-accent">
@@ -61,9 +60,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           </div>
         ) : (
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary">
-              <GraduationCap className="w-4 h-4 text-primary-foreground" />
-            </div>
+       
+              <img
+                src="/escudo_liceo.ico"
+                alt="Logo IEAP"
+                className="w-14 h-14 object-contain drop-shadow-lg brightness-100"
+              />
+              {/*<GraduationCap className="w-4 h-4 text-primary-foreground" />*/}
+  
             <span className="text-lg font-bold text-sidebar-accent-foreground">
               SIGAP
             </span>
@@ -79,7 +83,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       >
         {navItems.map((item) => {
           const active = isActive(item.href)
-          const Icon   = item.icon
+          const Icon = item.icon
 
           return (
             <Link
