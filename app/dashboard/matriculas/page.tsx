@@ -14,6 +14,7 @@ import type {
   MatriculaConRelaciones,
   Curso,
   Jornada,
+  PREVIEWMatricula
 } from "@/lib/types"
 import { estudiantesApi } from "@/lib/api/services/estudiantes"
 import { profesoresApi } from "@/lib/api/services/profesores"
@@ -26,32 +27,27 @@ export default function MatriculasPage() {
   const [editingData, setEditingData] = useState<MatriculaConRelaciones | null>(null)
   const limit = 20
 
-  const { data, isLoading, mutate } = useSWR<PaginatedApiResponse<MatriculaConRelaciones>>(
+  const { data, isLoading, mutate } = useSWR<PaginatedApiResponse<PREVIEWMatricula>>(
     `/matriculas/getAll?limit=${limit}&offset=${page * limit}`,
     swrFetcher
   )
 
-  const columns: Column<MatriculaConRelaciones>[] = [
+  const columns: Column<PREVIEWMatricula>[] = [
     { key: "matricula_id", header: "ID" },
     {
       key: "estudiante_nombre",
       header: "Estudiante",
-      render: (m) => m.estudiante_nombre || `${m.estudiante_id}`,
+      render: (m) => `${m.nombres}` + ` ${m.apellido_paterno ?? ""}` + ` ${m.apellido_materno ?? ""}`,
     },
     {
       key: "curso_nombre",
       header: "Curso",
-      render: (m) => m.curso_nombre || `Curso #${m.curso_id}`,
-    },
-    {
-      key: "profesor_nombre",
-      header: "Profesor",
-      render: (m) => m.profesor_nombre || `Prof. #${m.profesor_id}`,
+      render: (m) => ` ${m.curso_nombre}` + ` ${m.grado ?? ""}`,
     },
     {
       key: "estado",
       header: "Estado",
-      render: (m) => <StatusBadge status={m.estado} />,
+      render: (m) => <StatusBadge status={m.estado_actual} />,
     },
     {
       key: "fecha_matricula",
@@ -61,12 +57,17 @@ export default function MatriculasPage() {
           ? new Date(m.fecha_matricula).toLocaleDateString("es-CO")
           : "—",
     },
+    {
+      key: "periodo",
+      header: "Periodo",
+      render: (m) => m.periodo_descripcion ?? "-"
+    }
   ]
 
   const filtered =
     data?.data?.filter((m) => {
       if (!search) return true
-      const full = `${m.estudiante_nombre ?? ""} ${m.curso_nombre ?? ""} ${m.profesor_nombre ?? ""}`.toLowerCase()
+      const full = `${m.nombres ?? ""} ${m.curso_nombre ?? ""}`.toLowerCase()
       return full.includes(search.toLowerCase())
     }) ?? []
 
@@ -224,12 +225,10 @@ function MatriculaForm({
   const [profesorId, setProfesorId] = useState(initialData?.profesor_id ?? 0)
   const [cursoId, setCursoId] = useState(initialData?.curso_id ?? 0)
   const [jornadaId, setJornadaId] = useState(initialData?.jornada_id ?? 0)
-  const [estado, setEstado] = useState(initialData?.estado ?? "activa")
-  const [anioEgreso, setAnioEgreso] = useState(initialData?.anio_egreso ?? new Date().getFullYear())
+  const [estado, setEstado] = useState(initialData?.estado_actual ?? "activa")
+  const [anioEgreso, setAnioEgreso] = useState(initialData?.anio ?? new Date().getFullYear())
 
-  const { data: estudiantes } = estudiantesApi.getAll
 
-  const { data: profesores } = profesoresApi.getAll
 
   const { data: cursos } = useSWR<PaginatedApiResponse<Curso>>(
     "/cursos/getAll?limit=200&offset=0",
