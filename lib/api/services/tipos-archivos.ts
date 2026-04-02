@@ -2,23 +2,25 @@ import { api } from "../client"
 import type {
   ApiResponse,
   PaginatedApiResponse,
-  CreateTipoArchivoInput
+  CreateTipoArchivoInput,
+  TipoArchivo,
+  UpdateTipoArchivoInput
 } from "@/lib/types"
 
 export const tiposArchivosApi = {
   getAll: () =>
-    api.get<PaginatedApiResponse<CreateTipoArchivoInput>>("/tipos-archivos/getAll"),
+    api.get<PaginatedApiResponse<TipoArchivo>>("/tipos-archivos/getAll"),
 
   getByRol: (rol: string) =>
-    api.get<PaginatedApiResponse<CreateTipoArchivoInput>>(`/tipos-archivos/getByRol?rol=${rol}`),
+    api.get<PaginatedApiResponse<TipoArchivo>>(`/tipos-archivos/getByRol?rol=${rol}`),
 
   getById: (id: number) =>
-    api.get<ApiResponse<CreateTipoArchivoInput>>(`/tipos-archivos/getById/${id}`),
+    api.get<ApiResponse<TipoArchivo>>(`/tipos-archivos/getById/${id}`),
 
   create: (data: CreateTipoArchivoInput) =>
     api.post<ApiResponse>("/tipos-archivos/create", data),
 
-  update: (id: number, data: Partial<CreateTipoArchivoInput>) =>
+  update: (id: number, data: UpdateTipoArchivoInput) =>
     api.put<ApiResponse>(`/tipos-archivos/update/${id}`, data),
 
   delete: (id: number) =>

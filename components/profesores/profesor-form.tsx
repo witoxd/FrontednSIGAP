@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Loader2, Users, Briefcase, Phone } from "lucide-react"
-import { PersonaForm, type PersonaFormData } from "@/components/forms/persona-form"
+import { PersonaForm, type PersonaFormData } from "@/components/personas/persona-form"
 import { ContactoManager } from "@/components/shared/contactos/contacto-manager"
 import { profesoresApi } from "@/lib/api/services/profesores"
 import type { ProfesorWitchPersonaDocumento } from "@/lib/types"
@@ -176,6 +176,7 @@ export function ProfesorForm({ profesorId, onCancel }: ProfesorFormProps) {
             data={personaData}
             onChange={setPersonaData}
             disabled={guardando}
+            allowSearch = {true && modo === "crear"}
           />
         </div>
 

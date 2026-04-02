@@ -61,7 +61,9 @@ export interface Persona {
   serial_registro_civil?: string
   expedida_en?: string
 }
-
+export interface PersonaWithTipoDocumentoJSON {
+  persona: PersonaWithTipoDocumento
+}
 export interface PersonaWithTipoDocumento {
   persona_id: number
   nombres: string
@@ -336,8 +338,23 @@ export interface Matricula {
   curso_id: number
   fecha_matricula: string
   jornada_id: number
-  estado: "activo" | "finalizada" | "retirada"
-  anio_egreso: number
+  estado_actual: "activo" | "finalizada" | "retirada"
+  anio: number
+}
+
+export interface PREVIEWMatricula {
+  matricula_id: number
+  fecha_matricula: string
+  nombres: string
+  apellido_paterno?: string
+  apellido_materno?: string
+  curso_nombre: string
+  grado: string
+  jornada_nombre: string
+  estado_actual: "activo" | "finalizada" | "retirada"
+  anio: number
+  periodo_descripcion: string
+
 }
 
 export interface MatriculaConRelaciones extends Matricula {
@@ -405,6 +422,8 @@ export interface TipoArchivo {
   descripcion?: string
   extensiones_permitidas?: string[]
   activo?: boolean
+  aplica_a: "estudiante" | "profesor" | "administrativo" | "acudiente" | "matricula"
+  requerido_en: "estudiante" | "profesor" | "administrativo" | "acudiente" | "matricula" | []
 }
 
 export interface CreateArchivoInput {
@@ -432,6 +451,14 @@ export interface CreateTipoArchivoInput {
   descripcion?: string
   extensiones_permitidas?: string[]
   activo?: boolean
+}
+
+export interface UpdateTipoArchivoInput {
+  tipo_archivo: Partial<CreateTipoArchivoInput>
+}
+
+export interface TipoArchivo extends CreateTipoArchivoInput {
+
 }
 
 

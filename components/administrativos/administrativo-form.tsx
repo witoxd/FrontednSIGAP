@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
-import { PersonaForm, type PersonaFormData } from "@/components/forms/persona-form"
+import { PersonaForm, type PersonaFormData } from "@/components/personas/persona-form"
 import type { CreatePersonaInput } from "@/lib/types"
 
 interface AdministrativoFormProps {
@@ -32,7 +32,7 @@ export function AdministrativoForm({
     tipo_documento_id: initialData?.persona?.tipo_documento_id ?? 0,
     numero_documento: initialData?.persona?.numero_documento ?? "",
     fecha_nacimiento: initialData?.persona?.fecha_nacimiento ?? "",
-    genero: initialData?.persona?.genero ?? "Masculino",
+    genero: initialData?.persona?.genero ?? "Masculino" | "Femenini" | "Otro",
   })
   const [cargo, setCargo] = useState(
     initialData?.administrativo?.cargo ?? ""

@@ -52,10 +52,10 @@ interface ContactoManagerProps {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const inputCls =
-  "w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+  "w-full rounded border border-border px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
 
 const selectCls =
-  "rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  "rounded border border-border px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
 
 function esNueva(f: Fila): f is FilaNueva {
   return "_tempId" in f
@@ -290,26 +290,26 @@ export function ContactoManager({ personaId, disabled = false }: ContactoManager
 
       {/* ── Tabla de contactos ── */}
       {filas.length > 0 && (
-        <div className="overflow-x-auto rounded-lg border border-slate-200">
+        <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wide">
+            <thead className="bg-secondary text-muted-foreground text-xs uppercase tracking-wide">
               <tr>
-                <th className="px-3 py-2 text-left font-medium w-8">★</th>
-                <th className="px-3 py-2 text-left font-medium">Tipo</th>
-                <th className="px-3 py-2 text-left font-medium">Valor</th>
+                <th className="px-3 py-2 text-left font-medium w-8 text-muted-foreground">★</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Tipo</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Valor</th>
                 <th className="px-3 py-2 w-24" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {filas.map((fila) => {
                 // ── Fila nueva (aún sin id del backend) ──────────────────────
                 if (esNueva(fila)) {
                   const guardando = fila.estado === "guardando"
                   return (
-                    <tr key={fila._tempId} className="bg-blue-50/40">
+                    <tr key={fila._tempId} className="bg-accent/20">
                       {/* Estrella — desactivada para filas nuevas */}
                       <td className="px-3 py-2 text-center">
-                        <Star className="h-4 w-4 text-slate-200 mx-auto" />
+                        <Star className="h-4 w-4 text-muted mx-auto" />
                       </td>
 
                       {/* Select de tipo */}
@@ -349,7 +349,7 @@ export function ContactoManager({ personaId, disabled = false }: ContactoManager
                       <td className="px-3 py-2">
                         <div className="flex items-center justify-center gap-1">
                           {guardando ? (
-                            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                           ) : (
                             <>
                               <button
@@ -357,7 +357,7 @@ export function ContactoManager({ personaId, disabled = false }: ContactoManager
                                 onClick={() => handleGuardarNueva(fila._tempId)}
                                 disabled={disabled}
                                 title="Confirmar"
-                                className="p-1 rounded text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors disabled:opacity-50"
+                                className="p-1 rounded text-success hover:text-success hover:bg-success/10 transition-colors disabled:opacity-50"
                               >
                                 <Check className="h-4 w-4" />
                               </button>
@@ -366,7 +366,7 @@ export function ContactoManager({ personaId, disabled = false }: ContactoManager
                                 onClick={() => handleCancelarNueva(fila._tempId)}
                                 disabled={disabled}
                                 title="Cancelar"
-                                className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
+                                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
                               >
                                 <X className="h-4 w-4" />
                               </button>
@@ -391,8 +391,8 @@ export function ContactoManager({ personaId, disabled = false }: ContactoManager
                     key={fe.contacto_id}
                     className={`transition-colors ${
                       eliminando ? "opacity-40" :
-                      enEdicion  ? "bg-amber-50/40" :
-                      "bg-white hover:bg-slate-50/50"
+                      enEdicion  ? "bg-warning/10" :
+                      "bg-card hover:bg-secondary/30"
                     }`}
                   >
                     {/* Estrella de principal */}
@@ -407,8 +407,8 @@ export function ContactoManager({ personaId, disabled = false }: ContactoManager
                         <Star
                           className={`h-4 w-4 transition-colors ${
                             fe.es_principal
-                              ? "text-amber-400 fill-amber-400"
-                              : "text-slate-200 hover:text-amber-300"
+                              ? "text-warning fill-warning"
+                              : "text-muted hover:text-warning"
                           }`}
                         />
                       </button>
@@ -430,7 +430,7 @@ export function ContactoManager({ personaId, disabled = false }: ContactoManager
                           ))}
                         </select>
                       ) : (
-                        <div className="flex items-center gap-1.5 text-slate-600">
+                        <div className="flex items-center gap-1.5 text-foreground">
                           <Icon className="h-3.5 w-3.5 shrink-0" />
                           <span>{TIPO_MAP[fe.tipo_contacto]?.label ?? fe.tipo_contacto}</span>
                         </div>
@@ -451,7 +451,7 @@ export function ContactoManager({ personaId, disabled = false }: ContactoManager
                           autoFocus
                         />
                       ) : (
-                        <span className="text-slate-800">{fe.valor}</span>
+                        <span className="text-foreground">{fe.valor}</span>
                       )}
                     </td>
 
@@ -459,7 +459,7 @@ export function ContactoManager({ personaId, disabled = false }: ContactoManager
                     <td className="px-3 py-2">
                       <div className="flex items-center justify-center gap-1">
                         {ocupado ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                         ) : enEdicion ? (
                           <>
                             <button
@@ -467,7 +467,7 @@ export function ContactoManager({ personaId, disabled = false }: ContactoManager
                               onClick={() => handleConfirmarEdicion(fe.contacto_id)}
                               disabled={disabled}
                               title="Guardar cambios"
-                              className="p-1 rounded text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+                              className="p-1 rounded text-success hover:text-success hover:bg-success/10 transition-colors"
                             >
                               <Check className="h-4 w-4" />
                             </button>
@@ -476,7 +476,7 @@ export function ContactoManager({ personaId, disabled = false }: ContactoManager
                               onClick={() => handleCancelarEdicion(fe.contacto_id)}
                               disabled={disabled}
                               title="Cancelar edición"
-                              className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
                             >
                               <X className="h-4 w-4" />
                             </button>
@@ -488,7 +488,7 @@ export function ContactoManager({ personaId, disabled = false }: ContactoManager
                               onClick={() => handleIniciarEdicion(fe.contacto_id)}
                               disabled={disabled}
                               title="Editar"
-                              className="p-1 rounded text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+                              className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-accent/30 transition-colors"
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </button>
@@ -497,7 +497,7 @@ export function ContactoManager({ personaId, disabled = false }: ContactoManager
                               onClick={() => handleEliminar(fe.contacto_id)}
                               disabled={disabled}
                               title="Eliminar"
-                              className="p-1 rounded text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors"
+                              className="p-1 rounded text-muted hover:text-destructive hover:bg-destructive/10 transition-colors"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
@@ -518,14 +518,14 @@ export function ContactoManager({ personaId, disabled = false }: ContactoManager
         type="button"
         disabled={disabled}
         onClick={handleAgregarFila}
-        className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors disabled:opacity-50"
+        className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 font-medium transition-colors disabled:opacity-50"
       >
         <Plus className="h-4 w-4" />
         Agregar contacto
       </button>
 
       {filas.length === 0 && (
-        <p className="text-xs text-slate-400 mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           Sin contactos registrados. Agrega al menos uno para facilitar la comunicación.
         </p>
       )}
