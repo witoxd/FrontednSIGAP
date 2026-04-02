@@ -1,22 +1,16 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import useSWR from "swr"
 import { Loader2, Upload, X, FileText, Image as ImageIcon, File, CheckCircle2, AlertCircle } from "lucide-react"
 import { swrFetcher } from "@/lib/api/fetcher"
-import type { PaginatedApiResponse } from "@/lib/types"
+import type { PaginatedApiResponse, TipoArchivo } from "@/lib/types"
+import { tiposArchivosApi } from "@/lib/api/services/tipos-archivos"
 
 // ============================================================================
 // Tipos
 // ============================================================================
 
-interface TipoArchivo {
-  tipo_archivo_id: number
-  nombre: string
-  descripcion?: string
-  extensiones_permitidas?: string[]
-  activo?: boolean
-}
 
 interface ArchivoItem {
   id: string
@@ -59,11 +53,39 @@ export function ArchivoUploader({
   const [uploadProgress, setUploadProgress] = useState(0)
   const [errors, setErrors] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
-
+  const [tiposArchivos, setTiposArchivos] = useState<TipoArchivo[] | null>(null)
+  const [loadingTipos, setLoadingTipos] = useState(true)
   // Cargar tipos de archivo disponibles
-  const { data: tiposArchivos, isLoading: loadingTipos } = useSWR<
-    PaginatedApiResponse<TipoArchivo>
-  >(`/tipos-archivos/getByRol/${contexto}/`, swrFetcher)
+  // const { data: tiposArchivos, isLoading: loadingTipos } = useSWR<
+  //   PaginatedApiResponse<TipoArchivo>
+  // >(`/tipos-archivos/getByRol/${contexto}/`, swrFetcher)
+
+  async function cargarTiposArchivos(contexto: string) {
+    const res = await tiposArchivosApi.getByRol(contexto || "estudiante")
+    try {
+      setTiposArchivos((res.data ?? []) as TipoArchivo[])
+    } catch (err) {
+      console.log("Error al cargar los tipos de archivos: "), err
+    } finally {
+      setLoadingTipos(false)
+    }
+  }
+
+
+  useEffect(() => {
+    cargarTiposArchivos(contexto || "estudiante")
+
+    if (tiposArchivos != null) {
+      for (let i = 0; i < tiposArchivos.length; i++) {
+        if (tiposArchivos[i].requerido_en === contexto) {
+          tiposRequeridos.push(tiposArchivos[i].tipo_archivo_id)
+        }
+      }
+    }
+  }, [contexto]
+
+
+  )
 
   // ============================================================================
   // Funciones de validación
@@ -123,7 +145,7 @@ export function ArchivoUploader({
       if (tiposFaltantes.length > 0) {
         const nombresFaltantes = tiposFaltantes
           .map((id) => {
-            const tipo = tiposArchivos?.data?.find(
+            const tipo = tiposArchivos?.find(
               (t) => t.tipo_archivo_id === id
             )
             return tipo?.nombre || `ID ${id}`
@@ -249,7 +271,7 @@ export function ArchivoUploader({
 
     try {
       const formData = new FormData()
-    // 1. Campos de texto primero
+      // 1. Campos de texto primero
       formData.append("persona_id", String(persona_id))
 
       // 2. Metadata antes que los archivos (multer la necesita ya parseada
@@ -369,10 +391,9 @@ export function ArchivoUploader({
       <div
         className={`
           relative flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-8 transition-all cursor-pointer
-          ${
-            isDragging
-              ? "border-primary bg-primary/5"
-              : "border-border hover:border-primary/50 hover:bg-muted/50"
+          ${isDragging
+            ? "border-primary bg-primary/5"
+            : "border-border hover:border-primary/50 hover:bg-muted/50"
           }
           ${isSubmitting ? "pointer-events-none opacity-50" : ""}
         `}
@@ -494,7 +515,7 @@ export function ArchivoUploader({
                         required
                       >
                         <option value="">Seleccionar tipo *</option>
-                        {tiposArchivos?.data
+                        {tiposArchivos
                           ?.filter((t) => t.activo !== false)
                           .map((tipo) => (
                             <option
