@@ -6,7 +6,7 @@ import { Loader2, Save, Users, Phone, UserPlus, Trash2, Star } from "lucide-reac
 import { toast } from "sonner"
 
 import { acudientesApi } from "@/lib/api/services/acudientes"
-import { PersonaForm, type PersonaFormData } from "@/components/forms/persona-form"
+import { PersonaForm, type PersonaFormData } from "@/components/personas/persona-form"
 import { ContactoManager } from "@/components/shared/contactos/contacto-manager"
 import { EstudianteSearchModal } from "@/components/estudiantes/estudiante-search-modal"
 import { estudiantesApi } from "@/lib/api/services/estudiantes"
@@ -307,6 +307,7 @@ export function AcudienteForm({ modo, acudienteId }: AcudienteFormProps) {
             data={personaData}
             onChange={setPersonaData}
             disabled={guardandoPersona}
+            allowSearch = {true}
           />
 
           {/* ── Datos propios del acudiente ── */}
