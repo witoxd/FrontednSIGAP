@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
-import { PersonaForm, type PersonaFormData } from "@/components/forms/persona-form"
+import { PersonaForm, type PersonaFormData } from "@/components/personas/persona-form"
 import type { CreatePersonaInput } from "@/lib/types"
 
 interface EstudianteFormProps {

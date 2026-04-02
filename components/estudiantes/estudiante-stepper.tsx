@@ -10,7 +10,7 @@ import { expedienteApi }  from "@/lib/api/services/expediente"
 import { acudientesApi }  from "@/lib/api/services/acudientes"
 import { AcudienteSearchModal, type AcudienteResumen } from "@/components/acudientes/acudiente-search-modal"
 
-import { PersonaForm, type PersonaFormData } from "@/components/forms/persona-form"
+import { PersonaForm, type PersonaFormData } from "@/components/personas/persona-form"
 import {
   FichaEstudianteForm,
   type FichaFormData,

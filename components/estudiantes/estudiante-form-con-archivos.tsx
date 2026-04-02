@@ -13,8 +13,8 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, CheckCircle2, ArrowLeft } from "lucide-react"
-import { PersonaForm, type PersonaFormData } from "@/components/forms/persona-form"
-import { ArchivoUploader } from "@/components/shared/archvos/archivo-uploader"
+import { PersonaForm, type PersonaFormData } from "@/components/personas/persona-form"
+import { ArchivoUploader } from "@/components/shared/archivos/archivo-uploader"
 import { estudiantesApi } from "@/lib/api/services/estudiantes"
 import type { CreateEstudianteInput } from "@/lib/types"
 
