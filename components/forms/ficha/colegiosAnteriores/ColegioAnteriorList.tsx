@@ -31,7 +31,7 @@ export default function ColegioAnteriorList({ estudianteId, colegiosIniciales }:
 
   if (cargando) {
     return (
-      <div className="flex items-center gap-2 py-6 text-slate-400 text-sm">
+      <div className="flex items-center gap-2 py-6 text-muted-foreground text-sm">
         <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
@@ -51,7 +51,7 @@ export default function ColegioAnteriorList({ estudianteId, colegiosIniciales }:
 
   if (colegios.length === 0) {
     return (
-      <div className="text-sm text-slate-400 italic py-4 text-center border border-dashed border-slate-200 rounded-lg">
+      <div className="text-sm text-muted-foreground italic py-4 text-center border border-dashed border-border rounded-lg">
         No hay colegios anteriores registrados.
       </div>
     )
@@ -62,15 +62,15 @@ export default function ColegioAnteriorList({ estudianteId, colegiosIniciales }:
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+        <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
           Colegios Anteriores
         </h3>
-        <span className="text-xs text-slate-400">{colegios.length} registro(s)</span>
+        <span className="text-xs text-muted-foreground">{colegios.length} registro(s)</span>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wide">
+          <thead className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wide">
             <tr>
               <th className="px-4 py-2 text-left font-medium">#</th>
               <th className="px-4 py-2 text-left font-medium">Colegio</th>
@@ -81,12 +81,12 @@ export default function ColegioAnteriorList({ estudianteId, colegiosIniciales }:
           </thead>
           <tbody className="divide-y divide-slate-100">
             {colegios.map((c, idx) => (
-              <tr key={c.colegio_ant_id} className="bg-white hover:bg-slate-50/50 transition-colors">
-                <td className="px-4 py-2 text-slate-400 tabular-nums">{idx + 1}</td>
-                <td className="px-4 py-2 font-medium text-slate-800">{c.nombre_colegio}</td>
-                <td className="px-4 py-2 text-slate-500">{c.ciudad ?? <EmptyCell />}</td>
-                <td className="px-4 py-2 text-slate-500">{c.grado_cursado ?? <EmptyCell />}</td>
-                <td className="px-4 py-2 text-slate-500 tabular-nums">{c.anio ?? <EmptyCell />}</td>
+              <tr key={c.colegio_ant_id} className="bg-background hover:bg-muted/50 transition-colors">
+                <td className="px-4 py-2 text-muted-foreground tabular-nums">{idx + 1}</td>
+                <td className="px-4 py-2 font-medium text-foreground">{c.nombre_colegio}</td>
+                <td className="px-4 py-2 text-muted-foreground">{c.ciudad ?? <EmptyCell />}</td>
+                <td className="px-4 py-2 text-muted-foreground">{c.grado_cursado ?? <EmptyCell />}</td>
+                <td className="px-4 py-2 text-muted-foreground tabular-nums">{c.anio ?? <EmptyCell />}</td>
               </tr>
             ))}
           </tbody>
@@ -98,5 +98,5 @@ export default function ColegioAnteriorList({ estudianteId, colegiosIniciales }:
 
 // Celda vacía — más limpio que mostrar "undefined" o "-"
 function EmptyCell() {
-  return <span className="text-slate-300 text-xs">—</span>
+  return <span className="text-muted-foreground/50 text-xs">—</span>
 }

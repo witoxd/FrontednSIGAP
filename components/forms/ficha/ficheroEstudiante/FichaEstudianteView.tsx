@@ -17,7 +17,7 @@ interface Props {
 function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide pb-1 border-b border-slate-100">
+      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pb-1 border-b border-border">
         {titulo}
       </h4>
       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
@@ -36,9 +36,9 @@ function Fila({ label, valor }: { label: string; valor?: string | number | boole
 
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-xs text-slate-400">{label}</dt>
-      <dd className="text-sm text-slate-700">
-        {mostrar ?? <span className="text-slate-300 text-xs">—</span>}
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="text-sm text-foreground">
+        {mostrar ?? <span className="text-muted-foreground/50 text-xs">—</span>}
       </dd>
     </div>
   )
@@ -48,9 +48,9 @@ function Fila({ label, valor }: { label: string; valor?: string | number | boole
 function FilaAncha({ label, valor }: { label: string; valor?: string | null }) {
   return (
     <div className="sm:col-span-2 flex flex-col gap-0.5">
-      <dt className="text-xs text-slate-400">{label}</dt>
-      <dd className="text-sm text-slate-700 whitespace-pre-wrap">
-        {valor?.trim() || <span className="text-slate-300 text-xs">—</span>}
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="text-sm text-foreground whitespace-pre-wrap">
+        {valor?.trim() || <span className="text-muted-foreground/50 text-xs">—</span>}
       </dd>
     </div>
   )
@@ -76,7 +76,7 @@ export default function FichaEstudianteView({ estudianteId, fichaInicial }: Prop
 
   if (cargando) {
     return (
-      <div className="flex items-center gap-2 py-6 text-slate-400 text-sm">
+      <div className="flex items-center gap-2 py-6 text-muted-foreground text-sm">
         <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
@@ -96,7 +96,7 @@ export default function FichaEstudianteView({ estudianteId, fichaInicial }: Prop
 
   if (!ficha) {
     return (
-      <div className="text-sm text-slate-400 italic py-4 text-center border border-dashed border-slate-200 rounded-lg">
+      <div className="text-sm text-muted-foreground italic py-4 text-center border border-dashed border-border rounded-lg">
         No hay ficha registrada para este estudiante.
       </div>
     )

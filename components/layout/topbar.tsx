@@ -145,7 +145,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
                     {isDark ? "Modo claro" : "Modo oscuro"}
                   </span>
                   {/* Indicador visual del estado actual */}
-                  <span className={`h-2 w-2 rounded-full ${isDark ? "bg-amber-400" : "bg-slate-400"}`} />
+                  <span className={`h-2 w-2 rounded-full ${isDark ? "bg-amber-400" : "bg-muted/50"}`} />
                 </button>
 
                 {/* Cambiar contraseña */}

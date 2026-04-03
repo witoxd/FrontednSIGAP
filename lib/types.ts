@@ -54,12 +54,12 @@ export interface Persona {
   numero_documento: string
   fecha_nacimiento: string
   genero: "Masculino" | "Femenino" | "Otro"
-  grupo_sanguineo?: string
-  grupo_etnico?: string
-  credo_religioso?: string
-  lugar_nacimiento?: string
-  serial_registro_civil?: string
-  expedida_en?: string
+  grupo_sanguineo: string
+  grupo_etnico: string
+  credo_religioso: string
+  lugar_nacimiento: string
+  serial_registro_civil: string
+  expedida_en: string
 }
 export interface PersonaWithTipoDocumentoJSON {
   persona: PersonaWithTipoDocumento
@@ -73,12 +73,12 @@ export interface PersonaWithTipoDocumento {
   numero_documento: string
   fecha_nacimiento: string
   genero: "Masculino" | "Femenino" | "Otro"
-  grupo_sanguineo?: string
-  grupo_etnico?: string
-  credo_religioso?: string
-  lugar_nacimiento?: string
-  serial_registro_civil?: string
-  expedida_en?: string
+  grupo_sanguineo: string
+  grupo_etnico: string
+  credo_religioso: string
+  lugar_nacimiento: string
+  serial_registro_civil: string
+  expedida_en: string
 }
 
 export interface CreatePersonaInput {

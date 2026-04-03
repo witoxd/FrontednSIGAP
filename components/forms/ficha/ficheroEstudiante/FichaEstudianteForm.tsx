@@ -2,7 +2,6 @@
 
 import type { FichaEstudiante, UpsertFichaDTO } from "@/lib/types"
 
-// ── Tipo del formulario — todo string para los inputs, booleanos aparte ───────
 export interface FichaFormData {
   numero_hermanos:        string
   posicion_hermanos:      string
@@ -21,8 +20,6 @@ export interface FichaFormData {
   transporte_propio:      boolean
   observaciones:          string
 }
-
-// ── Helpers de conversión ─────────────────────────────────────────────────────
 
 export function fichaFormVacio(): FichaFormData {
   return {
@@ -66,11 +63,6 @@ export function fichaFromApi(f: FichaEstudiante): FichaFormData {
   }
 }
 
-/**
- * Convierte el form al DTO del backend.
- * Omite los campos vacíos para no pisar datos con strings vacíos —
- * el backend hace upsert parcial (solo actualiza lo que llega).
- */
 export function fichaToDTO(f: FichaFormData): UpsertFichaDTO["ficha"] {
   return {
     ...(f.numero_hermanos        !== "" && { numero_hermanos:        Number(f.numero_hermanos) }),
@@ -92,20 +84,16 @@ export function fichaToDTO(f: FichaFormData): UpsertFichaDTO["ficha"] {
   }
 }
 
-// ── Props ─────────────────────────────────────────────────────────────────────
-
 interface FichaEstudianteFormProps {
   data: FichaFormData
   onChange: (data: FichaFormData) => void
   disabled?: boolean
 }
 
-// ── Sub-componentes de presentación ──────────────────────────────────────────
-
 function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <fieldset className="space-y-3">
-      <legend className="text-xs font-semibold text-slate-500 uppercase tracking-wide pb-1 border-b border-slate-100 w-full">
+      <legend className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pb-1 border-b border-border w-full">
         {titulo}
       </legend>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -126,19 +114,17 @@ function Campo({
 }) {
   return (
     <div className={fullWidth ? "sm:col-span-2" : ""}>
-      <label className="block text-xs font-medium text-slate-500 mb-1">{label}</label>
+      <label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>
       {children}
     </div>
   )
 }
 
 const inputCls =
-  "w-full rounded border border-slate-200 px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+  "w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
 
 const textareaCls =
-  "w-full rounded border border-slate-200 px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-
-// ── Componente principal ──────────────────────────────────────────────────────
+  "w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none disabled:opacity-50 disabled:cursor-not-allowed"
 
 export function FichaEstudianteForm({ data, onChange, disabled = false }: FichaEstudianteFormProps) {
 
@@ -149,7 +135,6 @@ export function FichaEstudianteForm({ data, onChange, disabled = false }: FichaE
   return (
     <div className="space-y-6">
 
-      {/* ── Contexto familiar ── */}
       <Seccion titulo="Contexto familiar">
         <Campo label="Número de hermanos">
           <input
@@ -207,7 +192,6 @@ export function FichaEstudianteForm({ data, onChange, disabled = false }: FichaE
         </Campo>
       </Seccion>
 
-      {/* ── Contexto escolar ── */}
       <Seccion titulo="Contexto escolar">
         <Campo label="Motivo de traslado" fullWidth>
           <input
@@ -265,7 +249,6 @@ export function FichaEstudianteForm({ data, onChange, disabled = false }: FichaE
         </Campo>
       </Seccion>
 
-      {/* ── Datos médicos ── */}
       <Seccion titulo="Datos médicos">
         <Campo label="EPS / ARS">
           <input
@@ -301,7 +284,6 @@ export function FichaEstudianteForm({ data, onChange, disabled = false }: FichaE
         </Campo>
       </Seccion>
 
-      {/* ── Transporte ── */}
       <Seccion titulo="Transporte">
         <Campo label="Medio de transporte">
           <input
@@ -321,16 +303,15 @@ export function FichaEstudianteForm({ data, onChange, disabled = false }: FichaE
               disabled={disabled}
               checked={data.transporte_propio}
               onChange={(e) => handleChange("transporte_propio", e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              className="h-4 w-4 rounded border-border text-primary focus:ring-ring"
             />
-            <span className="text-sm text-slate-600">
+            <span className="text-sm text-muted-foreground">
               El estudiante dispone de transporte propio
             </span>
           </label>
         </Campo>
       </Seccion>
 
-      {/* ── Observaciones ── */}
       <Seccion titulo="Observaciones generales">
         <Campo label="" fullWidth>
           <textarea

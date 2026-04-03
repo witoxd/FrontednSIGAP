@@ -16,17 +16,7 @@ interface ProfesorFormData {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function personaFormVacia(): PersonaFormData {
-  return {
-    nombres:           "",
-    apellido_paterno:  "",
-    apellido_materno:  "",
-    tipo_documento_id: 0,
-    numero_documento:  "",
-    fecha_nacimiento:  "",
-    genero:            "Masculino",
-  }
-}
+
 
 function personaFromApi(p: ProfesorWitchPersonaDocumento): PersonaFormData {
   const per = p.persona as any
@@ -77,7 +67,7 @@ export function ProfesorForm({ profesorId, onCancel }: ProfesorFormProps) {
   const [error,           setError]           = useState<string | null>(null)
 
   // ── Datos de formulario ───────────────────────────────────────────────────
-  const [personaData,  setPersonaData]  = useState<PersonaFormData>(personaFormVacia())
+  const [personaData,  setPersonaData]  = useState<PersonaFormData>()
   const [profesorData, setProfesorData] = useState<ProfesorFormData>({
     fecha_contratacion: "",
     estado:             "activo",

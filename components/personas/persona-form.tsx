@@ -6,6 +6,7 @@ import { Search, X, BadgeCheck } from "lucide-react"
 import { swrFetcher } from "@/lib/api/fetcher"
 import { PersonaSearchModal } from "@/components/personas/persona-search-modal"
 import type { PaginatedApiResponse, TipoDocumento, Persona, PersonaWithTipoDocumento } from "@/lib/types"
+import { toast } from "sonner"
 
 export interface PersonaFormData extends Persona {}
 
@@ -91,15 +92,6 @@ export function PersonaForm({
   function handleLimpiarPersona() {
     setPersonaPreseleccionada(null)
     onPersonaExistenteSeleccionada?.(0) // 0 = sin persona preseleccionada
-    onChange({
-      nombres:           "",
-      apellido_paterno:  "",
-      apellido_materno:  "",
-      tipo_documento_id: 0,
-      numero_documento:  "",
-      fecha_nacimiento:  "",
-      genero:            "Masculino",
-    })
   }
 
   const inputClass =

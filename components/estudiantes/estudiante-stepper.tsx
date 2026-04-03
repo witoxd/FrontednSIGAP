@@ -6,8 +6,8 @@ import { Loader2, Check } from "lucide-react"
 import { toast } from "sonner"
 
 import { estudiantesApi } from "@/lib/api/services/estudiantes"
-import { expedienteApi }  from "@/lib/api/services/expediente"
-import { acudientesApi }  from "@/lib/api/services/acudientes"
+import { expedienteApi } from "@/lib/api/services/expediente"
+import { acudientesApi } from "@/lib/api/services/acudientes"
 import { AcudienteSearchModal, type AcudienteResumen } from "@/components/acudientes/acudiente-search-modal"
 
 import { PersonaForm, type PersonaFormData } from "@/components/personas/persona-form"
@@ -41,10 +41,10 @@ type Paso = 0 | 1 | 2 | 3 | 4
 
 const PASOS = [
   { label: "Datos personales" },
-  { label: "Ficha"            },
-  { label: "Vivienda"         },
-  { label: "Colegios"         },
-  { label: "Acudientes"       },
+  { label: "Ficha" },
+  { label: "Vivienda" },
+  { label: "Colegios" },
+  { label: "Acudientes" },
 ]
 
 interface EstudianteStepperProps {
@@ -76,38 +76,44 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
 
   // ── Datos de cada sección ──────────────────────────────────────────────────
   const [personaData, setPersonaData] = useState<PersonaFormData>({
-    nombres:           "",
-    apellido_paterno:  "",
-    apellido_materno:  "",
+    nombres: "",
+    apellido_paterno: "",
+    apellido_materno: "",
     tipo_documento_id: 0,
-    numero_documento:  "",
-    fecha_nacimiento:  "",
-    genero:            "Masculino",
+    numero_documento: "",
+    fecha_nacimiento: "",
+    genero: "Masculino",
+    serial_registro_civil: "",
+    grupo_sanguineo: "",
+    grupo_etnico: "",
+    credo_religioso: "",
+    lugar_nacimiento: "",
+    expedida_en: "",
   })
   const [estado, setEstado] = useState<
     "activo" | "inactivo" | "graduado" | "suspendido" | "expulsado"
   >("activo")
-  const [fechaIngreso, setFechaIngreso]   = useState("")
-  const [fichaData, setFichaData]         = useState<FichaFormData>(fichaFormVacio())
-  const [viviendaData, setViviendaData]   = useState<ViviendaFormData>(viviendaFormVacio())
-  const [colegiosData, setColegiosData]   = useState<ColegiosFormData>(colegiosFormVacio())
+  const [fechaIngreso, setFechaIngreso] = useState("")
+  const [fichaData, setFichaData] = useState<FichaFormData>(fichaFormVacio())
+  const [viviendaData, setViviendaData] = useState<ViviendaFormData>(viviendaFormVacio())
+  const [colegiosData, setColegiosData] = useState<ColegiosFormData>(colegiosFormVacio())
 
   // ── Estado paso 5 — Acudientes ─────────────────────────────────────────────
   /** Fila de asignación acudiente ↔ estudiante con estado de UI */
   interface FilaAcudiente {
     acudiente_estudiante_id: number
-    acudiente_id:   number
-    nombres:        string
+    acudiente_id: number
+    nombres: string
     apellido_paterno?: string
     apellido_materno?: string
     numero_documento: string
     tipo_relacion?: string
-    es_principal?:  boolean
+    es_principal?: boolean
     _uiEstado: "guardado" | "eliminando"
   }
-  const [acudientes, setAcudientes]           = useState<FilaAcudiente[]>([])
+  const [acudientes, setAcudientes] = useState<FilaAcudiente[]>([])
   const [cargandoAcudientes, setCargandoAcudientes] = useState(false)
-  const [modalAcudiente, setModalAcudiente]   = useState(false)
+  const [modalAcudiente, setModalAcudiente] = useState(false)
 
   // ── Carga inicial (solo modo editar) ───────────────────────────────────────
   useEffect(() => {
@@ -126,20 +132,26 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
 
         // Poblar paso 1
         setPersonaData({
-          nombres:           est.persona.nombres           ?? "",
-          apellido_paterno:  est.persona.apellido_paterno  ?? "",
-          apellido_materno:  est.persona.apellido_materno  ?? "",
+          nombres: est.persona.nombres ?? "",
+          apellido_paterno: est.persona.apellido_paterno ?? "",
+          apellido_materno: est.persona.apellido_materno ?? "",
           tipo_documento_id: est.persona.tipo_documento.tipo_documento_id,
-          numero_documento:  est.persona.numero_documento  ?? "",
-          fecha_nacimiento:  est.persona.fecha_nacimiento?.split("T")[0] ?? "",
-          genero:            (est.persona.genero as "Masculino" | "Femenino" | "Otro") ?? "Masculino",
+          numero_documento: est.persona.numero_documento ?? "",
+          fecha_nacimiento: est.persona.fecha_nacimiento?.split("T")[0] ?? "",
+          genero: (est.persona.genero as "Masculino" | "Femenino" | "Otro") ?? "Masculino",
+          grupo_sanguineo: est.persona.grupo_sanguineo ?? "",
+          grupo_etnico: est.persona.grupo_etnico ?? "",
+          credo_religioso: est.persona.credo_religioso ?? "",
+          lugar_nacimiento: est.persona.lugar_nacimiento ?? "",
+          serial_registro_civil: est.persona.serial_registro_civil ?? "",
+          expedida_en: est.persona.expedida_en ?? "",
         })
         setEstado(est.estudiante.estado ?? "activo")
         setFechaIngreso(est.estudiante.fecha_ingreso?.split("T")[0] ?? "")
 
         // Poblar pasos 2-4 desde el expediente
         const exp = expedienteRes.data!
-        if (exp.ficha)    setFichaData(fichaFromApi(exp.ficha))
+        if (exp.ficha) setFichaData(fichaFromApi(exp.ficha))
         if (exp.vivienda) setViviendaData(viviendaFromApi(exp.vivienda))
         if (exp.colegios?.length) setColegiosData(colegiosFromApi(exp.colegios))
 
@@ -148,14 +160,14 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
         setAcudientes(
           rawAcudientes.map((a: any) => ({
             acudiente_estudiante_id: a.acudiente_estudiante_id,
-            acudiente_id:    a.acudiente_id,
-            nombres:         a.persona?.nombres          ?? a.nombres ?? "",
+            acudiente_id: a.acudiente_id,
+            nombres: a.persona?.nombres ?? a.nombres ?? "",
             apellido_paterno: a.persona?.apellido_paterno,
             apellido_materno: a.persona?.apellido_materno,
             numero_documento: a.persona?.numero_documento ?? a.numero_documento ?? "",
-            tipo_relacion:   a.tipo_relacion,
-            es_principal:    a.es_principal,
-            _uiEstado:       "guardado" as const,
+            tipo_relacion: a.tipo_relacion,
+            es_principal: a.es_principal,
+            _uiEstado: "guardado" as const,
           }))
         )
       } catch (err) {
@@ -182,7 +194,7 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
 
     try {
       const input: CreateEstudianteInput = {
-        persona:    { ...personaData },
+        persona: { ...personaData },
         estudiante: { estado, fecha_ingreso: fechaIngreso },
       }
 
@@ -218,9 +230,9 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
 
     try {
       const dto =
-        pasoActivo === 1 ? { ficha:    fichaToDTO(fichaData) }
-        : pasoActivo === 2 ? { vivienda: viviendaToDTO(viviendaData) }
-        :                    { colegios: colegiosToDTO(colegiosData) }
+        pasoActivo === 1 ? { ficha: fichaToDTO(fichaData) }
+          : pasoActivo === 2 ? { vivienda: viviendaToDTO(viviendaData) }
+            : { colegios: colegiosToDTO(colegiosData) }
 
       await expedienteApi.upsert(idInterno, dto)
       toast.success("Guardado correctamente")
@@ -262,7 +274,7 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
       <nav aria-label="Pasos del formulario">
         <ol className="flex items-center gap-0">
           {PASOS.map((paso, idx) => {
-            const activo    = pasoActivo === idx
+            const activo = pasoActivo === idx
             const completado = idx === 0
               ? expedienteDesbloqueado
               : expedienteDesbloqueado && pasoActivo > idx
@@ -275,16 +287,16 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
                   disabled={bloqueado}
                   onClick={() => !bloqueado && setPasoActivo(idx as Paso)}
                   className={`flex items-center gap-2 text-sm font-medium transition-colors disabled:cursor-not-allowed
-                    ${activo    ? "text-primary"              : ""}
-                    ${completado && !activo ? "text-success"  : ""}
-                    ${bloqueado ? "text-muted-foreground/40"  : ""}
+                    ${activo ? "text-primary" : ""}
+                    ${completado && !activo ? "text-success" : ""}
+                    ${bloqueado ? "text-muted-foreground/40" : ""}
                     ${!activo && !completado && !bloqueado ? "text-muted-foreground hover:text-foreground" : ""}
                   `}
                 >
                   <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold border-2 transition-colors
-                    ${activo    ? "border-primary bg-primary text-primary-foreground"          : ""}
+                    ${activo ? "border-primary bg-primary text-primary-foreground" : ""}
                     ${completado && !activo ? "border-success bg-success text-success-foreground" : ""}
-                    ${bloqueado ? "border-muted-foreground/30 text-muted-foreground/40"          : ""}
+                    ${bloqueado ? "border-muted-foreground/30 text-muted-foreground/40" : ""}
                     ${!activo && !completado && !bloqueado ? "border-muted-foreground text-muted-foreground" : ""}
                   `}>
                     {completado && !activo ? <Check className="h-3.5 w-3.5" /> : idx + 1}
@@ -528,28 +540,28 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
 
 interface FilaAcudienteProp {
   acudiente_estudiante_id: number
-  acudiente_id:    number
-  nombres:         string
+  acudiente_id: number
+  nombres: string
   apellido_paterno?: string
   apellido_materno?: string
-  numero_documento:  string
-  tipo_relacion?:  string
-  es_principal?:   boolean
+  numero_documento: string
+  tipo_relacion?: string
+  es_principal?: boolean
   _uiEstado: "guardado" | "eliminando"
 }
 
 interface Paso5Props {
-  idInterno:           number | null
-  acudientes:          FilaAcudienteProp[]
-  setAcudientes:       React.Dispatch<React.SetStateAction<FilaAcudienteProp[]>>
-  cargandoAcudientes:  boolean
-  modalAcudiente:      boolean
-  setModalAcudiente:   (v: boolean) => void
-  guardando:           boolean
-  modo:                "crear" | "editar"
-  onAnterior:          () => void
-  onFinalizar:         () => void
-  onVolverLista:       () => void
+  idInterno: number | null
+  acudientes: FilaAcudienteProp[]
+  setAcudientes: React.Dispatch<React.SetStateAction<FilaAcudienteProp[]>>
+  cargandoAcudientes: boolean
+  modalAcudiente: boolean
+  setModalAcudiente: (v: boolean) => void
+  guardando: boolean
+  modo: "crear" | "editar"
+  onAnterior: () => void
+  onFinalizar: () => void
+  onVolverLista: () => void
 }
 
 function Paso5Acudientes({
@@ -576,10 +588,10 @@ function Paso5Acudientes({
 
     const res = await acudientesApi.assignToEstudiante({
       assignToEstudiante: {
-        acudiente_id:   acudiente.acudiente_id,
-        estudiante_id:  idInterno,
-        tipo_relacion:  tipoRelacion,
-        es_principal:   acudientes.length === 0,
+        acudiente_id: acudiente.acudiente_id,
+        estudiante_id: idInterno,
+        tipo_relacion: tipoRelacion,
+        es_principal: acudientes.length === 0,
       },
     })
 
@@ -588,14 +600,14 @@ function Paso5Acudientes({
       ...prev,
       {
         acudiente_estudiante_id: nueva?.acudiente_estudiante_id ?? -(Date.now()),
-        acudiente_id:    acudiente.acudiente_id,
-        nombres:         acudiente.nombres,
+        acudiente_id: acudiente.acudiente_id,
+        nombres: acudiente.nombres,
         apellido_paterno: acudiente.apellido_paterno,
         apellido_materno: acudiente.apellido_materno,
         numero_documento: acudiente.numero_documento,
-        tipo_relacion:   tipoRelacion,
-        es_principal:    acudientes.length === 0,
-        _uiEstado:       "guardado",
+        tipo_relacion: tipoRelacion,
+        es_principal: acudientes.length === 0,
+        _uiEstado: "guardado",
       },
     ])
   }
@@ -669,7 +681,7 @@ function Paso5Acudientes({
                 {acudientes.map((fila) => {
                   const eliminando = fila._uiEstado === "eliminando"
                   return (
-                    <tr key={fila.acudiente_estudiante_id}
+                    <tr key={fila.acudiente_id}
                       className={`bg-background transition-opacity ${eliminando ? "opacity-40" : "hover:bg-muted/30"}`}>
                       <td className="px-4 py-2.5 font-medium text-foreground">
                         {nombreCompleto(fila)}

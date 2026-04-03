@@ -55,12 +55,12 @@ interface ViviendaEstudianteFormProps {
 // ── Helpers de presentación ───────────────────────────────────────────────────
 
 const inputCls =
-  "w-full rounded border border-slate-200 px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+  "w-full rounded border border-border px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
 
 function Campo({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-slate-500 mb-1">{label}</label>
+      <label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>
       {children}
     </div>
   )
@@ -76,7 +76,7 @@ export function ViviendaEstudianteForm({ data, onChange, disabled = false }: Viv
 
   return (
     <fieldset className="space-y-3">
-      <legend className="text-xs font-semibold text-slate-500 uppercase tracking-wide pb-1 border-b border-slate-100 w-full">
+      <legend className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pb-1 border-b border-border w-full">
         Características del hogar
       </legend>
 

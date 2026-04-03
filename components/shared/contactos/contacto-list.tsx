@@ -66,7 +66,7 @@ export function ContactoList({
 
   if (cargando) {
     return (
-      <div className="flex items-center gap-2 py-3 text-slate-400 text-sm">
+      <div className="flex items-center gap-2 py-3 text-muted-foreground text-sm">
         <Loader2 className="h-4 w-4 animate-spin" />
         Cargando contactos...
       </div>
@@ -78,7 +78,7 @@ export function ContactoList({
   }
 
   if (contactos.length === 0) {
-    return <p className="text-sm text-slate-400 py-2">{emptyMessage}</p>
+    return <p className="text-sm text-muted-foreground py-2">{emptyMessage}</p>
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -101,22 +101,22 @@ export function ContactoList({
             className="flex items-center gap-3 text-sm"
           >
             {/* Icono del tipo */}
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted/50 text-muted-foreground">
               <Icon className="h-3.5 w-3.5" />
             </span>
 
             {/* Valor — clickeable si tiene href (tel:, mailto:) */}
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-slate-400 leading-none mb-0.5">{meta.label}</p>
+              <p className="text-xs text-muted-foreground leading-none mb-0.5">{meta.label}</p>
               {enlace ? (
                 <a
                   href={enlace}
-                  className="text-slate-800 hover:text-blue-600 hover:underline transition-colors truncate block"
+                  className="text-foreground hover:text-blue-600 hover:underline transition-colors truncate block"
                 >
                   {c.valor}
                 </a>
               ) : (
-                <span className="text-slate-800 truncate block">{c.valor}</span>
+                <span className="text-foreground truncate block">{c.valor}</span>
               )}
             </div>
 

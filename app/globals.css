@@ -91,24 +91,24 @@
 }
 
 .dark {
-  --background: #0a0f1e;          /* Casi negro azulado */
+  --background: #0a0f1e;
   --foreground: #e8edf5;
   --card: #111827;
   --card-foreground: #e8edf5;
   --popover: #111827;
   --popover-foreground: #e8edf5;
-  --primary: #c9a84c;             /* Dorado del escudo — brilla en dark */
+  --primary: #c9a84c;
   --primary-foreground: #0a0f1e;
   --secondary: #1e293b;
   --secondary-foreground: #94a3b8;
   --muted: #1e293b;
   --muted-foreground: #64748b;
-  --accent: #1e3a6e;              /* Azul marino como acento */
+  --accent: #1e3a6e;
   --accent-foreground: #93c5fd;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #1e293b;
-  --input: #1e293b;
+  --border: #2d3748;        /* antes #1e293b — más visible para delimitar inputs */
+  --input: #1a2236;         /* fondo de input: entre card y background, legible */
   --ring: #c9a84c;
   --sidebar: #050810;
   --sidebar-foreground: #94a3b8;
@@ -126,5 +126,46 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+  }
+
+  /*
+   * Fix de visibilidad en dark mode para todos los inputs, selects y textareas.
+   *
+   * El problema: los componentes usan bg-background (#0a0f1e) dentro de inputs,
+   * pero ese color es tan oscuro que el texto (#e8edf5) y el placeholder (#64748b)
+   * se perciben con poco contraste al estar rodeados por bordes casi del mismo tono.
+   *
+   * Solución: forzar bg-input en dark para que el fondo del campo sea
+   * ligeramente más claro (#1a2236) que el fondo de página, creando
+   * separación visual clara sin cambiar ningún componente.
+   *
+   * Analogía: es como poner un mantel blanco sobre una mesa oscura —
+   * el plato (texto) resalta aunque ambos sean claros.
+   */
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  .dark select,
+  .dark textarea {
+    background-color: var(--input) !important;
+    color: var(--foreground);
+    border-color: var(--border);
+  }
+
+  /*
+   * Placeholder: en dark mode el color por defecto del browser suele ser
+   * demasiado oscuro sobre fondos oscuros. Lo forzamos a muted-foreground.
+   */
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #64748b;
+    opacity: 1; /* Firefox lo reduce por defecto */
+  }
+
+  /*
+   * Select: el texto de la opción seleccionada y las opciones del dropdown
+   * necesitan fondo oscuro explícito — algunos browsers los renderizan en blanco.
+   */
+  .dark select option {
+    background-color: #111827; /* --card */
+    color: #e8edf5;            /* --foreground */
   }
 }
