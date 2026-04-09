@@ -34,10 +34,11 @@ import {
 } from "@/components/forms/ficha/colegiosAnteriores/ColegioAnteriorForm"
 
 import type { CreateEstudianteInput, EstudianteWithPersonaDocumento } from "@/lib/types"
+import { ArchivoUploader } from "../shared/archivos/archivo-uploader"
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-type Paso = 0 | 1 | 2 | 3 | 4
+type Paso = 0 | 1 | 2 | 3 | 4 | 5
 
 const PASOS = [
   { label: "Datos personales" },
@@ -45,6 +46,7 @@ const PASOS = [
   { label: "Vivienda" },
   { label: "Colegios" },
   { label: "Acudientes" },
+  { label: "Documentos" }
 ]
 
 interface EstudianteStepperProps {
@@ -518,15 +520,73 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
           guardando={guardando}
           modo={modo}
           onAnterior={() => setPasoActivo(3)}
-          onFinalizar={() => {
-            router.push(`/dashboard/estudiantes/${idInterno}`)
-          }}
-          onVolverLista={() => {
-            router.push("/dashboard/estudiantes")
-            router.refresh()
-          }}
+          onFinalizar={() => setPasoActivo(5)}   // ← antes redirigía al perfil
+          onVolverLista={() => { router.push("/dashboard/estudiantes");
+          router.refresh() }}
         />
       )}
+
+      {pasoActivo === 5 && (
+  <div className="space-y-6">
+    <div className="bg-card border rounded-lg p-6">
+      <h2 className="text-lg font-semibold mb-1">Documentos del Estudiante</h2>
+      <p className="text-sm text-muted-foreground mb-5">
+        Sube los documentos requeridos. Si no hay ninguno configurado para estudiantes,
+        esta sección no aparecerá.
+      </p>
+ 
+      {/*
+       * ArchivoUploader retorna null si:
+       *   - contexto es undefined
+       *   - el backend no retorna tipos para "estudiante"
+       * En ese caso la sección queda vacía — considera mostrar un mensaje:
+       */}
+      {idInterno && (
+        <ArchivoUploader
+          persona_id={
+            /* persona_id del estudiante —
+             * necesitarás guardarlo en el estado cuando haces el POST en paso 1.
+             * Agrega: const [idPersonaInterna, setIdPersonaInterna] = useState<number | null>(null)
+             * Y en handleGuardarPaso1, tras recibir la respuesta:
+             *   setIdPersonaInterna(nuevoPersonaId)
+             */
+            idInterno!
+          }
+          contexto="estudiante"
+          onSuccess={() => toast.success("Documentos guardados")}
+          onError={(err) => toast.error(err)}
+        />
+      )}
+    </div>
+ 
+    <div className="flex items-center justify-between">
+      <button
+        type="button"
+        onClick={() => setPasoActivo(4)}
+        className="px-4 py-2 border border-border rounded-md text-sm hover:bg-muted transition-colors"
+      >
+        ← Anterior
+      </button>
+ 
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => { router.push("/dashboard/estudiantes"); router.refresh() }}
+          className="px-4 py-2 border border-border rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+        >
+          Volver a la lista
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push(`/dashboard/estudiantes/${idInterno}/detalles`)}
+          className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90 transition-colors"
+        >
+          Ver perfil del estudiante →
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
     </div>
   )
@@ -681,7 +741,7 @@ function Paso5Acudientes({
                 {acudientes.map((fila) => {
                   const eliminando = fila._uiEstado === "eliminando"
                   return (
-                    <tr key={fila.acudiente_id}
+                    <tr key={fila.acudiente_estudiante_id}
                       className={`bg-background transition-opacity ${eliminando ? "opacity-40" : "hover:bg-muted/30"}`}>
                       <td className="px-4 py-2.5 font-medium text-foreground">
                         {nombreCompleto(fila)}

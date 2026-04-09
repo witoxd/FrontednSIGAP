@@ -12,7 +12,7 @@ export const tiposArchivosApi = {
     api.get<PaginatedApiResponse<TipoArchivo>>("/tipos-archivos/getAll"),
 
   getByRol: (rol: string) =>
-    api.get<PaginatedApiResponse<TipoArchivo>>(`/tipos-archivos/getByRol?rol=${rol}`),
+    api.get<PaginatedApiResponse<TipoArchivo>>(`/tipos-archivos/getByRol/${rol}`),
 
   getById: (id: number) =>
     api.get<ApiResponse<TipoArchivo>>(`/tipos-archivos/getById/${id}`),

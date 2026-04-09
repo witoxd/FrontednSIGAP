@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Save, Users, Phone, UserPlus, Trash2, Star } from "lucide-react"
+import { Loader2, Save, Users, Phone, UserPlus, Trash2, Star, FileText } from "lucide-react"
 import { toast } from "sonner"
 
 import { acudientesApi } from "@/lib/api/services/acudientes"
@@ -15,6 +15,7 @@ import type {
   AsignacionConEstudiante,
   EstudianteResumen,
 } from "@/lib/types"
+import { ArchivoUploader } from "../shared/archivos/archivo-uploader"
 
 // ── Tipos internos ─────────────────────────────────────────────────────────────
 
@@ -28,8 +29,8 @@ interface FilaAsignacion extends AsignacionConEstudiante {
  * Son los campos de la tabla `acudientes` que no están en `personas`.
  */
 interface AcudienteFormData {
-  parentesco:    string
-  ocupacion:     string
+  parentesco: string
+  ocupacion: string
   nivel_estudio: string
 }
 
@@ -39,8 +40,8 @@ function acudienteFormVacio(): AcudienteFormData {
 
 function acudienteFromApi(a: AcudienteWithPersona): AcudienteFormData {
   return {
-    parentesco:    (a.acudiente as any).parentesco    ?? "",
-    ocupacion:     (a.acudiente as any).ocupacion     ?? "",
+    parentesco: (a.acudiente as any).parentesco ?? "",
+    ocupacion: (a.acudiente as any).ocupacion ?? "",
     nivel_estudio: (a.acudiente as any).nivel_estudio ?? "",
   }
 }
@@ -49,32 +50,38 @@ function acudienteFromApi(a: AcudienteWithPersona): AcudienteFormData {
 
 function personaFormVacia(): PersonaFormData {
   return {
-    nombres:           "",
-    apellido_paterno:  "",
-    apellido_materno:  "",
+    nombres: "",
+    apellido_paterno: "",
+    apellido_materno: "",
     tipo_documento_id: 0,
-    numero_documento:  "",
-    fecha_nacimiento:  "",
-    genero:            "Masculino",
+    numero_documento: "",
+    fecha_nacimiento: "",
+    genero: "Masculino",
+    grupo_sanguineo: "",
+    grupo_etnico: "",
+    credo_religioso: "",
+    lugar_nacimiento: "",
+    expedida_en: "",
+    serial_registro_civil: "",
   }
 }
 
 function personaFromApi(a: AcudienteWithPersona): PersonaFormData {
   return {
-    nombres:           a.persona.nombres           ?? "",
-    apellido_paterno:  a.persona.apellido_paterno  ?? "",
-    apellido_materno:  a.persona.apellido_materno  ?? "",
+    nombres: a.persona.nombres ?? "",
+    apellido_paterno: a.persona.apellido_paterno ?? "",
+    apellido_materno: a.persona.apellido_materno ?? "",
     tipo_documento_id: a.persona.tipo_documento.tipo_documento_id,
-    numero_documento:  a.persona.numero_documento  ?? "",
+    numero_documento: a.persona.numero_documento ?? "",
     // El tipo AcudienteWithPersona no expone fecha_nacimiento —
     // si el backend la incluye, mapearla aquí.
-    fecha_nacimiento:  (a.persona as any).fecha_nacimiento?.split("T")[0] ?? "",
-    genero:            ((a.persona as any).genero as PersonaFormData["genero"]) ?? "Masculino",
-    grupo_sanguineo:   (a.persona as any).grupo_sanguineo,
-    grupo_etnico:      (a.persona as any).grupo_etnico,
-    credo_religioso:   (a.persona as any).credo_religioso,
-    lugar_nacimiento:  (a.persona as any).lugar_nacimiento,
-    expedida_en:       (a.persona as any).expedida_en,
+    fecha_nacimiento: (a.persona as any).fecha_nacimiento?.split("T")[0] ?? "",
+    genero: ((a.persona as any).genero as PersonaFormData["genero"]) ?? "Masculino",
+    grupo_sanguineo: (a.persona as any).grupo_sanguineo,
+    grupo_etnico: (a.persona as any).grupo_etnico,
+    credo_religioso: (a.persona as any).credo_religioso,
+    lugar_nacimiento: (a.persona as any).lugar_nacimiento,
+    expedida_en: (a.persona as any).expedida_en,
     serial_registro_civil: (a.persona as any).serial_registro_civil,
   }
 }
@@ -107,23 +114,23 @@ export function AcudienteForm({ modo, acudienteId }: AcudienteFormProps) {
    * contactos. idAcudiente es el número de expediente de acudiente —
    * necesario para asignar estudiantes.
    */
-  const [idPersona,    setIdPersona]    = useState<number | null>(null)
-  const [idAcudiente,  setIdAcudiente]  = useState<number | null>(acudienteId ?? null)
+  const [idPersona, setIdPersona] = useState<number | null>(null)
+  const [idAcudiente, setIdAcudiente] = useState<number | null>(acudienteId ?? null)
   const seccionsDesbloqueadas = idPersona !== null
 
   // ── Estado de carga y guardado ────────────────────────────────────────────
   const [cargandoInicial, setCargandoInicial] = useState(modo === "editar")
   const [guardandoPersona, setGuardandoPersona] = useState(false)
-  const [errorPersona, setErrorPersona]         = useState<string | null>(null)
+  const [errorPersona, setErrorPersona] = useState<string | null>(null)
 
   // ── Datos del formulario ──────────────────────────────────────────────────
-  const [personaData,   setPersonaData]   = useState<PersonaFormData>(personaFormVacia())
+  const [personaData, setPersonaData] = useState<PersonaFormData>(personaFormVacia())
   const [acudienteData, setAcudienteData] = useState<AcudienteFormData>(acudienteFormVacio())
 
   // ── Asignaciones de estudiantes ───────────────────────────────────────────
-  const [asignaciones, setAsignaciones]       = useState<FilaAsignacion[]>([])
+  const [asignaciones, setAsignaciones] = useState<FilaAsignacion[]>([])
   const [cargandoAsignaciones, setCargandoAsignaciones] = useState(false)
-  const [modalAbierto, setModalAbierto]       = useState(false)
+  const [modalAbierto, setModalAbierto] = useState(false)
 
   // ── Carga inicial (modo editar) ───────────────────────────────────────────
   useEffect(() => {
@@ -172,11 +179,11 @@ export function AcudienteForm({ modo, acudienteId }: AcudienteFormProps) {
     try {
       if (modo === "crear") {
         const res = await acudientesApi.create({
-          persona:   { ...personaData } as any,
+          persona: { ...personaData } as any,
           acudiente: {
             acudiente_id: 0, // 0 para que backend lo ignore y genere uno nuevo
-            ...(acudienteData.parentesco    && { parentesco:    acudienteData.parentesco }),
-            ...(acudienteData.ocupacion     && { ocupacion:     acudienteData.ocupacion }),
+            ...(acudienteData.parentesco && { parentesco: acudienteData.parentesco }),
+            ...(acudienteData.ocupacion && { ocupacion: acudienteData.ocupacion }),
             ...(acudienteData.nivel_estudio && { nivel_estudio: acudienteData.nivel_estudio }),
           },
         })
@@ -186,11 +193,11 @@ export function AcudienteForm({ modo, acudienteId }: AcudienteFormProps) {
         toast.success("Acudiente creado. Ahora puedes agregar contactos y estudiantes.")
       } else {
         await acudientesApi.update(idAcudiente!, {
-          persona:   { ...personaData } as any,
+          persona: { ...personaData } as any,
           acudiente: {
             acudiente_id: 0, // 0 para que backend lo ignore y genere uno nuevo
-            ...(acudienteData.parentesco    && { parentesco:    acudienteData.parentesco }),
-            ...(acudienteData.ocupacion     && { ocupacion:     acudienteData.ocupacion }),
+            ...(acudienteData.parentesco && { parentesco: acudienteData.parentesco }),
+            ...(acudienteData.ocupacion && { ocupacion: acudienteData.ocupacion }),
             ...(acudienteData.nivel_estudio && { nivel_estudio: acudienteData.nivel_estudio }),
           },
         })
@@ -211,10 +218,10 @@ export function AcudienteForm({ modo, acudienteId }: AcudienteFormProps) {
 
     const res = await acudientesApi.assignToEstudiante({
       assignToEstudiante: {
-        acudiente_id:   idAcudiente,
-        estudiante_id:  estudianteId,
-        tipo_relacion:  tipoRelacion,
-        es_principal:   asignaciones.length === 0,
+        acudiente_id: idAcudiente,
+        estudiante_id: estudianteId,
+        tipo_relacion: tipoRelacion,
+        es_principal: asignaciones.length === 0,
       },
     })
 
@@ -227,10 +234,10 @@ export function AcudienteForm({ modo, acudienteId }: AcudienteFormProps) {
       {
         relacion: {
           acudiente_estudiante_id: nueva?.acudiente_estudiante_id ?? -(Date.now()),
-          acudiente_id:   idAcudiente,
-          estudiante_id:  estudianteId,
-          tipo_relacion:  tipoRelacion,
-          es_principal:   asignaciones.length === 0,
+          acudiente_id: idAcudiente,
+          estudiante_id: estudianteId,
+          tipo_relacion: tipoRelacion,
+          es_principal: asignaciones.length === 0,
         },
         estudiante,
         _uiEstado: "guardado",
@@ -307,7 +314,7 @@ export function AcudienteForm({ modo, acudienteId }: AcudienteFormProps) {
             data={personaData}
             onChange={setPersonaData}
             disabled={guardandoPersona}
-            allowSearch = {true}
+            allowSearch={true}
           />
 
           {/* ── Datos propios del acudiente ── */}
@@ -408,9 +415,8 @@ export function AcudienteForm({ modo, acudienteId }: AcudienteFormProps) {
           § 2 — Contactos
           Se muestra siempre pero bloqueado hasta tener personaId.
       ════════════════════════════════════════════════════════════════════ */}
-      <section className={`bg-card border rounded-lg p-6 transition-opacity ${
-        seccionsDesbloqueadas ? "" : "opacity-50 pointer-events-none"
-      }`}>
+      <section className={`bg-card border rounded-lg p-6 transition-opacity ${seccionsDesbloqueadas ? "" : "opacity-50 pointer-events-none"
+        }`}>
         <div className="flex items-center gap-2 mb-5">
           <Phone className="h-4 w-4 text-muted-foreground" />
           <h2 className="text-base font-semibold">Contactos</h2>
@@ -433,9 +439,8 @@ export function AcudienteForm({ modo, acudienteId }: AcudienteFormProps) {
       {/* ════════════════════════════════════════════════════════════════════
           § 3 — Estudiantes asignados
       ════════════════════════════════════════════════════════════════════ */}
-      <section className={`bg-card border rounded-lg p-6 transition-opacity ${
-        seccionsDesbloqueadas ? "" : "opacity-50 pointer-events-none"
-      }`}>
+      <section className={`bg-card border rounded-lg p-6 transition-opacity ${seccionsDesbloqueadas ? "" : "opacity-50 pointer-events-none"
+        }`}>
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <UserPlus className="h-4 w-4 text-muted-foreground" />
@@ -524,6 +529,38 @@ export function AcudienteForm({ modo, acudienteId }: AcudienteFormProps) {
               </tbody>
             </table>
           </div>
+        )}
+      </section>
+
+      {/* ════════════════════════════════════════════════════════════════════
+    § 4 — Documentos
+    Bloqueado hasta tener personaId. Si el backend no retorna tipos
+    para "acudiente", el componente no se renderiza solo (retorna null).
+════════════════════════════════════════════════════════════════════ */}
+      <section className={`bg-card border rounded-lg p-6 transition-opacity ${seccionsDesbloqueadas ? "" : "opacity-50 pointer-events-none"
+        }`}>
+        <div className="flex items-center gap-2 mb-5">
+          {/* Necesitas importar FileText de lucide-react */}
+          <FileText className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-base font-semibold">Documentos</h2>
+          {!seccionsDesbloqueadas && (
+            <span className="ml-2 text-xs text-muted-foreground">
+              — Guarda primero la información personal
+            </span>
+          )}
+        </div>
+
+        {seccionsDesbloqueadas ? (
+          <ArchivoUploader
+            persona_id={idPersona!}
+            contexto="acudiente"
+            onSuccess={() => toast.success("Documentos guardados")}
+            onError={(err) => toast.error(err)}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Los documentos estarán disponibles después de guardar.
+          </p>
         )}
       </section>
 

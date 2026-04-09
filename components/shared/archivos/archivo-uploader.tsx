@@ -1,600 +1,521 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import useSWR from "swr"
-import { Loader2, Upload, X, FileText, Image as ImageIcon, File, CheckCircle2, AlertCircle } from "lucide-react"
+import {
+  Loader2, Upload, X, FileText, Image as ImageIcon,
+  File, CheckCircle2, AlertCircle, Paperclip,
+} from "lucide-react"
 import { swrFetcher } from "@/lib/api/fetcher"
-import type { PaginatedApiResponse, TipoArchivo } from "@/lib/types"
-import { tiposArchivosApi } from "@/lib/api/services/tipos-archivos"
+import type { PaginatedApiResponse } from "@/lib/types"
 
-// ============================================================================
-// Tipos
-// ============================================================================
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 
+interface TipoArchivo {
+  tipo_archivo_id:  number
+  nombre:           string
+  descripcion?:     string
+  extensiones_permitidas?: string[]
+  activo?:          boolean
+  aplica_a?:         string | string[]   // ej: ["estudiante", "profesor"]
+  /**
+   * Si viene con valor, el archivo es obligatorio para ese contexto.
+   * Ej: "estudiante" | "acudiente" | null
+   */
+  requerido_en?:    string | string[]
+}
 
-interface ArchivoItem {
-  id: string
-  file: File
-  tipo_archivo_id: number | null
-  descripcion: string
-  preview: string | null
-  status: "pending" | "uploading" | "success" | "error"
-  error?: string
+/**
+ * Un slot representa un tipo de archivo con su archivo adjunto (o vacío).
+ * Analogía: es como los casilleros de un expediente físico —
+ * cada casillero tiene una etiqueta (tipo) y puede estar vacío o con un documento.
+ */
+interface Slot {
+  tipo:    TipoArchivo
+  file:    File | null
+  preview: string | null   // solo para imágenes
+  error:   string | null
 }
 
 interface ArchivoUploaderProps {
-  persona_id: number
-  onSuccess?: (archivos: unknown[]) => void
-  onError?: (error: string) => void
-  maxFiles?: number
-  maxFileSize?: number // en MB
-  tiposRequeridos?: number[] // IDs de tipos de archivo requeridos
-  className?: string
-  contexto?: "estudiante" | "profesor" | "acudiente" | "administrativo" | "matricula"
+  persona_id:  number
+  /**
+   * Define qué tipos de archivo se consultan al backend.
+   * Si no se pasa o la consulta retorna vacío, el componente no se renderiza.
+   */
+  contexto?:   "estudiante" | "profesor" | "acudiente" | "administrativo" | "matricula"
+  onSuccess?:  (archivos: unknown[]) => void
+  onError?:    (error: string) => void
+  maxFileSize?: number   // MB, default 10
+  className?:  string
 }
 
-// ============================================================================
-// Componente Principal
-// ============================================================================
+// ── Constantes ────────────────────────────────────────────────────────────────
+
+const MIME_PERMITIDOS = [
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]
+
+const EXTENSIONES_LABEL = "PDF, JPG, PNG, DOC"
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function getFileIcon(file: File) {
+  if (file.type.startsWith("image/")) return ImageIcon
+  if (file.type.includes("pdf"))      return FileText
+  return File
+}
+
+function normalizarContextos(valor?: string | string[]): string[] {
+  if (!valor) return []
+  if (Array.isArray(valor)) return valor
+
+  return valor
+    .replace(/^\{|\}$/g, "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function esObligatorioEnContexto(tipo: TipoArchivo, contexto?: ArchivoUploaderProps["contexto"]): boolean {
+  if (!contexto) return false
+  return normalizarContextos(tipo.requerido_en).includes(contexto)
+}
+
+// ── Componente ────────────────────────────────────────────────────────────────
 
 export function ArchivoUploader({
   persona_id,
+  contexto,
   onSuccess,
   onError,
-  maxFiles = 20,
-  maxFileSize = 10, // 10MB por defecto
-  tiposRequeridos = [],
+  maxFileSize = 10,
   className = "",
-  contexto,
 }: ArchivoUploaderProps) {
-  const [archivos, setArchivos] = useState<ArchivoItem[]>([])
-  const [isDragging, setIsDragging] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [errors, setErrors] = useState<string[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [tiposArchivos, setTiposArchivos] = useState<TipoArchivo[] | null>(null)
-  const [loadingTipos, setLoadingTipos] = useState(true)
-  // Cargar tipos de archivo disponibles
-  // const { data: tiposArchivos, isLoading: loadingTipos } = useSWR<
-  //   PaginatedApiResponse<TipoArchivo>
-  // >(`/tipos-archivos/getByRol/${contexto}/`, swrFetcher)
 
-  async function cargarTiposArchivos(contexto: string) {
-    const res = await tiposArchivosApi.getByRol(contexto || "estudiante")
-    try {
-      setTiposArchivos((res.data ?? []) as TipoArchivo[])
-    } catch (err) {
-      console.log("Error al cargar los tipos de archivos: "), err
-    } finally {
-      setLoadingTipos(false)
-    }
+  // ── Carga de tipos ──────────────────────────────────────────────────────────
+  /**
+   * Bug corregido: el servicio usa query param `?rol=`, no path param.
+   * Si no hay contexto, pasamos null como key para que SWR no haga el fetch.
+   */
+  const swrKey = contexto
+    ? `/tipos-archivos/getByRol/${contexto}`
+    : null
+
+  const { data: tiposRes, isLoading: loadingTipos } =
+    useSWR<PaginatedApiResponse<TipoArchivo>>(swrKey, swrFetcher)
+
+  const tipos = tiposRes?.data?.filter((t) => t.activo !== false) ?? []
+
+  // ── Estado ──────────────────────────────────────────────────────────────────
+  const [slots, setSlots]           = useState<Slot[]>([])
+  const [isSubmitting, setSubmitting] = useState(false)
+  const [uploadProgress, setProgress] = useState(0)
+  const [globalError, setGlobalError] = useState<string | null>(null)
+  const [submitted, setSubmitted]   = useState(false)
+
+  // Inicializar slots cuando llegan los tipos (una sola vez)
+  const slotsInitialized = useRef(false)
+  if (tipos.length > 0 && !slotsInitialized.current) {
+    setSlots(tipos.map((t) => ({ tipo: t, file: null, preview: null, error: null })))
+    slotsInitialized.current = true
   }
 
+  // ── Validación por slot ────────────────────────────────────────────────────
 
-  useEffect(() => {
-    cargarTiposArchivos(contexto || "estudiante")
+  function validarArchivo(file: File, maxMB: number): string | null {
+    if (!MIME_PERMITIDOS.includes(file.type))
+      return `Tipo no permitido. Usa: ${EXTENSIONES_LABEL}`
+    if (file.size > maxMB * 1024 * 1024)
+      return `Excede el tamaño máximo de ${maxMB} MB`
+    return null
+  }
 
-    if (tiposArchivos != null) {
-      for (let i = 0; i < tiposArchivos.length; i++) {
-        if (tiposArchivos[i].requerido_en === contexto) {
-          tiposRequeridos.push(tiposArchivos[i].tipo_archivo_id)
+  function handleFileChange(tipoId: number, file: File | null) {
+    setSlots((prev) =>
+      prev.map((s) => {
+        if (s.tipo.tipo_archivo_id !== tipoId) return s
+
+        if (!file) {
+          if (s.preview) URL.revokeObjectURL(s.preview)
+          return { ...s, file: null, preview: null, error: null }
         }
-      }
-    }
-  }, [contexto]
 
+        const error = validarArchivo(file, maxFileSize)
+        const preview = !error && file.type.startsWith("image/")
+          ? URL.createObjectURL(file)
+          : null
 
-  )
+        return { ...s, file, preview, error }
+      })
+    )
+    setGlobalError(null)
+  }
 
-  // ============================================================================
-  // Funciones de validación
-  // ============================================================================
+  // ── Validación global antes de enviar ──────────────────────────────────────
 
-  const validarArchivo = (file: File): string | null => {
-    // Validar tamaño
-    const maxBytes = maxFileSize * 1024 * 1024
-    if (file.size > maxBytes) {
-      return `El archivo ${file.name} excede el tamaño máximo de ${maxFileSize}MB`
-    }
+  function validarFormulario(): string | null {
+    // ¿Algún slot tiene error de archivo?
+    const conError = slots.find((s) => s.error)
+    if (conError) return `Corrige el archivo en "${conError.tipo.nombre}"`
 
-    // Validar tipo MIME básico
-    const tiposPermitidos = [
-      "application/pdf",
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ]
+    // ¿Falta algún obligatorio?
+    const faltante = slots.find(
+      (s) => esObligatorioEnContexto(s.tipo, contexto) && !s.file
+    )
+    if (faltante) return `El archivo "${faltante.tipo.nombre}" es obligatorio`
 
-    if (!tiposPermitidos.includes(file.type)) {
-      return `El tipo de archivo ${file.type} no está permitido`
-    }
+    // ¿Al menos un archivo seleccionado?
+    const alguno = slots.some((s) => s.file)
+    if (!alguno) return "Selecciona al menos un archivo para continuar"
 
     return null
   }
 
-  const validarFormulario = (): string[] => {
-    const errores: string[] = []
+  // ── Envío ──────────────────────────────────────────────────────────────────
 
-    if (archivos.length === 0) {
-      errores.push("Debe seleccionar al menos un archivo")
-      return errores
-    }
+  async function handleSubmit() {
+    const validationError = validarFormulario()
+    if (validationError) { setGlobalError(validationError); return }
 
-    if (archivos.length > maxFiles) {
-      errores.push(`Máximo ${maxFiles} archivos permitidos`)
-    }
-
-    // Validar que todos tengan tipo asignado
-    const sinTipo = archivos.filter((a) => !a.tipo_archivo_id)
-    if (sinTipo.length > 0) {
-      errores.push(`${sinTipo.length} archivo(s) sin tipo asignado`)
-    }
-
-    // Validar tipos requeridos si se especificaron
-    if (tiposRequeridos.length > 0) {
-      const tiposPresentes = archivos
-        .map((a) => a.tipo_archivo_id)
-        .filter((id): id is number => id !== null)
-      const tiposFaltantes = tiposRequeridos.filter(
-        (req) => !tiposPresentes.includes(req)
-      )
-
-      if (tiposFaltantes.length > 0) {
-        const nombresFaltantes = tiposFaltantes
-          .map((id) => {
-            const tipo = tiposArchivos?.find(
-              (t) => t.tipo_archivo_id === id
-            )
-            return tipo?.nombre || `ID ${id}`
-          })
-          .join(", ")
-        errores.push(`Faltan archivos requeridos: ${nombresFaltantes}`)
-      }
-    }
-
-    return errores
-  }
-
-  // ============================================================================
-  // Funciones de manejo de archivos
-  // ============================================================================
-
-  const agregarArchivos = (files: File[]) => {
-    const nuevosErrores: string[] = []
-
-    const nuevosArchivos = files
-      .map((file) => {
-        const error = validarArchivo(file)
-        if (error) {
-          nuevosErrores.push(error)
-          return null
-        }
-
-        return {
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          file,
-          tipo_archivo_id: null,
-          descripcion: "",
-          preview: file.type.startsWith("image/")
-            ? URL.createObjectURL(file)
-            : null,
-          status: "pending" as const,
-        }
-      })
-      .filter((a): a is ArchivoItem => a !== null)
-
-    if (nuevosErrores.length > 0) {
-      setErrors(nuevosErrores)
-    } else {
-      setErrors([])
-    }
-
-    setArchivos((prev) => {
-      const combined = [...prev, ...nuevosArchivos]
-      if (combined.length > maxFiles) {
-        setErrors([`Máximo ${maxFiles} archivos permitidos`])
-        return combined.slice(0, maxFiles)
-      }
-      return combined
-    })
-  }
-
-  const removerArchivo = (id: string) => {
-    setArchivos((prev) => {
-      const archivo = prev.find((a) => a.id === id)
-      if (archivo?.preview) {
-        URL.revokeObjectURL(archivo.preview)
-      }
-      return prev.filter((a) => a.id !== id)
-    })
-    setErrors([])
-  }
-
-  const actualizarArchivo = (
-    id: string,
-    campo: keyof ArchivoItem,
-    valor: unknown
-  ) => {
-    setArchivos((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, [campo]: valor } : a))
-    )
-    setErrors([])
-  }
-
-  // ============================================================================
-  // Drag & Drop
-  // ============================================================================
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-
-    const files = Array.from(e.dataTransfer.files)
-    agregarArchivos(files)
-  }
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files)
-      agregarArchivos(files)
-    }
-  }
-
-  // ============================================================================
-  // Subir archivos
-  // ============================================================================
-
-  const handleSubmit = async () => {
-    // Validar formulario
-    const erroresValidacion = validarFormulario()
-    if (erroresValidacion.length > 0) {
-      setErrors(erroresValidacion)
-      return
-    }
-
-    setIsSubmitting(true)
-    setUploadProgress(0)
-    setErrors([])
+    setSubmitting(true)
+    setProgress(0)
+    setGlobalError(null)
 
     try {
+      const slotsConArchivo = slots.filter((s) => s.file !== null)
+
       const formData = new FormData()
-      // 1. Campos de texto primero
       formData.append("persona_id", String(persona_id))
 
-      // 2. Metadata antes que los archivos (multer la necesita ya parseada
-      //    cuando empieza a procesar cada archivo del stream)
-      const metadata = archivos.map((archivo) => ({
-        tipo_archivo_id: archivo.tipo_archivo_id!,
-        descripcion: archivo.descripcion || archivo.file.name,
+      // metadata: mismo orden que los archivos que se adjuntan abajo
+      const metadata = slotsConArchivo.map((s) => ({
+        tipo_archivo_id: s.tipo.tipo_archivo_id,
+        descripcion:     s.tipo.nombre,
       }))
       formData.append("metadata", JSON.stringify(metadata))
 
-      // 3. Archivos al final
-      archivos.forEach((archivo) => {
-        formData.append("archivos", archivo.file)
+      // archivos en el mismo orden que metadata
+      slotsConArchivo.forEach((s) => {
+        formData.append("archivos", s.file!)
       })
 
+      const token = typeof window !== "undefined"
+        ? localStorage.getItem("sigap_token")
+        : null
+      if (!token) throw new Error("No se encontró el token de autenticación")
 
-      // Obtener token
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("sigap_token")
-          : null
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api"
 
-      if (!token) {
-        throw new Error("No se encontró el token de autenticación")
-      }
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
 
-      // Enviar con XMLHttpRequest para trackear progreso
-      const xhr = new XMLHttpRequest()
+        xhr.upload.addEventListener("progress", (e) => {
+          if (e.lengthComputable)
+            setProgress(Math.round((e.loaded * 100) / e.total))
+        })
 
-      xhr.upload.addEventListener("progress", (e) => {
-        if (e.lengthComputable) {
-          const porcentaje = Math.round((e.loaded * 100) / e.total)
-          setUploadProgress(porcentaje)
-        }
-      })
-
-      const API_BASE_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
-
-      await new Promise((resolve, reject) => {
         xhr.addEventListener("load", () => {
           if (xhr.status >= 200 && xhr.status < 300) {
-            const response = JSON.parse(xhr.responseText)
-            console.log("[v0] Archivos subidos exitosamente:", response)
-            resolve(response)
+            resolve()
           } else {
-            const error = JSON.parse(xhr.responseText)
-            reject(new Error(error.message || "Error al subir archivos"))
+            try {
+              const body = JSON.parse(xhr.responseText)
+              reject(new Error(body.message ?? `Error ${xhr.status}`))
+            } catch {
+              reject(new Error(`Error ${xhr.status}`))
+            }
           }
         })
 
-        xhr.addEventListener("error", () => {
-          reject(new Error("Error de red al subir archivos"))
-        })
+        xhr.addEventListener("error", () => reject(new Error("Error de red")))
 
-        xhr.open("POST", `${API_BASE_URL}/archivos/bulkCreate`)
+        xhr.open("POST", `${API_BASE}/archivos/bulkCreate`)
         xhr.setRequestHeader("Authorization", `Bearer ${token}`)
         xhr.send(formData)
       })
 
-      // Éxito
-      if (onSuccess) {
-        onSuccess(archivos)
-      }
-
-      // Limpiar formulario
-      setArchivos([])
-      setUploadProgress(0)
-    } catch (error) {
-      console.error("[v0] Error al subir archivos:", error)
-      const errorMessage =
-        error instanceof Error ? error.message : "Error desconocido"
-      setErrors([errorMessage])
-      if (onError) {
-        onError(errorMessage)
-      }
+      setSubmitted(true)
+      onSuccess?.(slotsConArchivo.map((s) => s.file))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error desconocido"
+      setGlobalError(msg)
+      onError?.(msg)
     } finally {
-      setIsSubmitting(false)
-      setUploadProgress(0)
+      setSubmitting(false)
+      setProgress(0)
     }
   }
 
-  // ============================================================================
-  // Helpers de renderizado
-  // ============================================================================
+  // ── Render: estados de carga / sin tipos ───────────────────────────────────
 
-  const getFileIcon = (file: File) => {
-    if (file.type.startsWith("image/")) return ImageIcon
-    if (file.type.includes("pdf")) return FileText
-    return File
+  // Sin contexto o cargando tipos: no renderizar nada todavía
+  if (!contexto || loadingTipos) {
+    return loadingTipos ? (
+      <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Cargando tipos de documento...
+      </div>
+    ) : null
   }
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  }
+  // Sin tipos retornados: no renderizar el componente
+  if (tipos.length === 0) return null
 
-  // ============================================================================
-  // Renderizado
-  // ============================================================================
-
-  const inputClass =
-    "h-9 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-
-  if (loadingTipos) {
+  // Éxito tras envío
+  if (submitted) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="flex items-center gap-3 rounded-lg bg-success/10 border border-success/20 px-4 py-3 text-sm text-success">
+        <CheckCircle2 className="h-5 w-5 shrink-0" />
+        Archivos subidos correctamente
       </div>
     )
   }
 
-  return (
-    <div className={`flex flex-col gap-4 ${className}`}>
-      {/* Zona de Drop */}
-      <div
-        className={`
-          relative flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-8 transition-all cursor-pointer
-          ${isDragging
-            ? "border-primary bg-primary/5"
-            : "border-border hover:border-primary/50 hover:bg-muted/50"
-          }
-          ${isSubmitting ? "pointer-events-none opacity-50" : ""}
-        `}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          onChange={handleFileSelect}
-          className="hidden"
-          accept="image/*,.pdf,.doc,.docx"
-          disabled={isSubmitting}
-        />
+  // ── Calcular estado de completitud ─────────────────────────────────────────
+  const obligatorios   = slots.filter((s) => esObligatorioEnContexto(s.tipo, contexto))
+  const opcionales     = slots.filter((s) => !esObligatorioEnContexto(s.tipo, contexto))
+  const obligCubiertos = obligatorios.filter((s) => s.file).length
+  const totalConArchivo = slots.filter((s) => s.file).length
 
-        <Upload className="w-10 h-10 text-muted-foreground" />
-        <div className="text-center">
-          <p className="text-sm font-medium text-foreground">
-            Arrastra archivos aquí o haz clic para seleccionar
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Máximo {maxFiles} archivos de {maxFileSize}MB cada uno (PDF, JPG,
-            PNG, DOC)
-          </p>
+  // ── Render principal ───────────────────────────────────────────────────────
+  return (
+    <div className={`flex flex-col gap-5 ${className}`}>
+
+      {/* ── Cabecera informativa ── */}
+      {obligatorios.length > 0 && (
+        <div className="flex items-center justify-between rounded-lg bg-muted/40 px-4 py-2.5 text-sm">
+          <span className="text-muted-foreground">
+            Documentos obligatorios:
+            <span className={`ml-1 font-medium ${
+              obligCubiertos === obligatorios.length
+                ? "text-success"
+                : "text-destructive"
+            }`}>
+              {obligCubiertos}/{obligatorios.length}
+            </span>
+          </span>
+          {totalConArchivo > 0 && (
+            <span className="text-muted-foreground text-xs">
+              {totalConArchivo} archivo{totalConArchivo !== 1 ? "s" : ""} seleccionado{totalConArchivo !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
+      )}
+
+      {/* ── Slots dinámicos — uno por tipo retornado ── */}
+      <div className="flex flex-col gap-3">
+
+        {/* Obligatorios primero */}
+        {obligatorios.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Obligatorios
+            </p>
+            {obligatorios.map((s) => (
+              <SlotUpload
+                key={s.tipo.tipo_archivo_id}
+                slot={s}
+                contexto={contexto}
+                maxFileSize={maxFileSize}
+                disabled={isSubmitting}
+                onChange={(file) => handleFileChange(s.tipo.tipo_archivo_id, file)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Opcionales */}
+        {opcionales.length > 0 && (
+          <div className="flex flex-col gap-2">
+            {obligatorios.length > 0 && (
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Opcionales
+              </p>
+            )}
+            {opcionales.map((s) => (
+              <SlotUpload
+                key={s.tipo.tipo_archivo_id}
+                slot={s}
+                contexto={contexto}
+                maxFileSize={maxFileSize}
+                disabled={isSubmitting}
+                onChange={(file) => handleFileChange(s.tipo.tipo_archivo_id, file)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Mensajes de error */}
-      {errors.length > 0 && (
-        <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-destructive">
-                Errores de validación
-              </p>
-              <ul className="mt-1 text-sm text-destructive/90 list-disc list-inside">
-                {errors.map((error, index) => (
-                  <li key={index}>{error}</li>
-                ))}
-              </ul>
-            </div>
+      {/* ── Error global ── */}
+      {globalError && (
+        <div className="flex items-start gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2.5">
+          <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+          <p className="text-sm text-destructive">{globalError}</p>
+        </div>
+      )}
+
+      {/* ── Progreso de upload ── */}
+      {isSubmitting && uploadProgress > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Subiendo archivos...</span>
+            <span>{uploadProgress}%</span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-200"
+              style={{ width: `${uploadProgress}%` }}
+            />
           </div>
         </div>
       )}
 
-      {/* Lista de archivos */}
-      {archivos.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-foreground">
-              Archivos seleccionados ({archivos.length}/{maxFiles})
-            </h4>
-            {archivos.length > 0 && !isSubmitting && (
-              <button
-                onClick={() => {
-                  archivos.forEach((a) => {
-                    if (a.preview) URL.revokeObjectURL(a.preview)
-                  })
-                  setArchivos([])
-                  setErrors([])
-                }}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Limpiar todo
-              </button>
+      {/* ── Botón enviar ── */}
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={isSubmitting || totalConArchivo === 0}
+        className="flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        {isSubmitting ? (
+          <><Loader2 className="h-4 w-4 animate-spin" /> Subiendo...</>
+        ) : (
+          <><Upload className="h-4 w-4" /> Subir {totalConArchivo > 0 ? `${totalConArchivo} archivo${totalConArchivo !== 1 ? "s" : ""}` : "archivos"}</>
+        )}
+      </button>
+    </div>
+  )
+}
+
+// ── Sub-componente: un slot por tipo de archivo ───────────────────────────────
+
+interface SlotUploadProps {
+  slot:        Slot
+  contexto?:   ArchivoUploaderProps["contexto"]
+  maxFileSize: number
+  disabled:    boolean
+  onChange:    (file: File | null) => void
+}
+
+function SlotUpload({ slot, contexto, maxFileSize, disabled, onChange }: SlotUploadProps) {
+  const inputRef   = useRef<HTMLInputElement>(null)
+  const obligatorio = esObligatorioEnContexto(slot.tipo, contexto)
+  const Icon        = slot.file ? getFileIcon(slot.file) : Paperclip
+
+  return (
+    <div className={`rounded-lg border transition-colors ${
+      slot.error
+        ? "border-destructive/50 bg-destructive/5"
+        : slot.file
+          ? "border-success/40 bg-success/5"
+          : obligatorio
+            ? "border-border border-dashed"
+            : "border-border border-dashed"
+    }`}>
+      <div className="flex items-center gap-3 px-3 py-2.5">
+
+        {/* Ícono de estado */}
+        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${
+          slot.file && !slot.error
+            ? "bg-success/10 text-success"
+            : "bg-muted text-muted-foreground"
+        }`}>
+          {slot.file && !slot.error
+            ? <CheckCircle2 className="h-4 w-4" />
+            : <Icon className="h-4 w-4" />
+          }
+        </div>
+
+        {/* Nombre del tipo + badge obligatorio */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-foreground truncate">
+              {slot.tipo.nombre}
+            </span>
+            {obligatorio && (
+              <span className="shrink-0 text-xs font-medium text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">
+                Obligatorio
+              </span>
             )}
           </div>
 
-          <div className="flex flex-col gap-2 max-h-96 overflow-y-auto">
-            {archivos.map((archivo) => {
-              const Icon = getFileIcon(archivo.file)
-              return (
-                <div
-                  key={archivo.id}
-                  className="flex items-start gap-3 rounded-lg border border-border bg-background p-3"
-                >
-                  {/* Preview o icono */}
-                  <div className="flex-shrink-0">
-                    {archivo.preview ? (
-                      <img
-                        src={archivo.preview}
-                        alt={archivo.file.name}
-                        className="w-12 h-12 object-cover rounded"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
-                        <Icon className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
+          {/* Archivo seleccionado o descripción */}
+          {slot.file ? (
+            <p className="text-xs text-muted-foreground truncate mt-0.5">
+              {slot.file.name} · {formatSize(slot.file.size)}
+            </p>
+          ) : slot.tipo.descripcion ? (
+            <p className="text-xs text-muted-foreground truncate mt-0.5">
+              {slot.tipo.descripcion}
+            </p>
+          ) : null}
 
-                  {/* Información y controles */}
-                  <div className="flex-1 min-w-0 flex flex-col gap-2">
-                    <div>
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {archivo.file.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatFileSize(archivo.file.size)}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <select
-                        value={archivo.tipo_archivo_id ?? ""}
-                        onChange={(e) =>
-                          actualizarArchivo(
-                            archivo.id,
-                            "tipo_archivo_id",
-                            Number(e.target.value)
-                          )
-                        }
-                        className={inputClass}
-                        disabled={isSubmitting}
-                        required
-                      >
-                        <option value="">Seleccionar tipo *</option>
-                        {tiposArchivos
-                          ?.filter((t) => t.activo !== false)
-                          .map((tipo) => (
-                            <option
-                              key={tipo.tipo_archivo_id}
-                              value={tipo.tipo_archivo_id}
-                            >
-                              {tipo.nombre}
-                            </option>
-                          ))}
-                      </select>
-
-                      <input
-                        type="text"
-                        placeholder="Descripción (opcional)"
-                        value={archivo.descripcion}
-                        onChange={(e) =>
-                          actualizarArchivo(
-                            archivo.id,
-                            "descripcion",
-                            e.target.value
-                          )
-                        }
-                        className={inputClass}
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Botón eliminar */}
-                  {!isSubmitting && (
-                    <button
-                      onClick={() => removerArchivo(archivo.id)}
-                      className="flex-shrink-0 rounded-lg p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                      title="Eliminar archivo"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Barra de progreso */}
-          {isSubmitting && uploadProgress > 0 && (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Subiendo archivos...</span>
-                <span className="font-medium text-foreground">{uploadProgress}%</span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full bg-primary transition-all duration-300"
-                  style={{ width: `${uploadProgress}%` }}
-                />
-              </div>
-            </div>
+          {/* Error de validación */}
+          {slot.error && (
+            <p className="text-xs text-destructive mt-0.5">{slot.error}</p>
           )}
-
-          {/* Botón de envío */}
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting || archivos.length === 0}
-            className="flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Subiendo...
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4" />
-                Subir {archivos.length} archivo{archivos.length !== 1 ? "s" : ""}
-              </>
-            )}
-          </button>
         </div>
-      )}
+
+        {/* Preview imagen */}
+        {slot.preview && (
+          <img
+            src={slot.preview}
+            alt="preview"
+            className="h-10 w-10 rounded object-cover shrink-0 border border-border"
+          />
+        )}
+
+        {/* Acciones */}
+        <div className="flex items-center gap-1 shrink-0">
+          {slot.file ? (
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => onChange(null)}
+              title="Quitar archivo"
+              className="rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => inputRef.current?.click()}
+              className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Seleccionar
+            </button>
+          )}
+        </div>
+
+        {/* Input oculto */}
+        <input
+          ref={inputRef}
+          type="file"
+          className="hidden"
+          accept="image/*,.pdf,.doc,.docx"
+          disabled={disabled}
+          onChange={(e) => {
+            const f = e.target.files?.[0] ?? null
+            onChange(f)
+            // reset para poder seleccionar el mismo archivo de nuevo
+            e.target.value = ""
+          }}
+        />
+      </div>
     </div>
   )
 }

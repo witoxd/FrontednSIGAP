@@ -354,8 +354,8 @@ export interface PREVIEWMatricula {
   estado_actual: "activo" | "finalizada" | "retirada"
   anio: number
   periodo_descripcion: string
-
 }
+
 
 export interface MatriculaConRelaciones extends Matricula {
   estudiante_nombre?: string
