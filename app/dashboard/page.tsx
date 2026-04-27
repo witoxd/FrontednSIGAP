@@ -19,6 +19,7 @@ import type {
   Curso,
   MatriculaConRelaciones,
 } from "@/lib/types"
+import { procesosInscripcionApi, type ProcesoInscripcion } from "@/lib/api/services/procesosInscripcion"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -100,12 +101,12 @@ export default function DashboardPage() {
     )
 
   // ── Período de matrícula ───────────────────────────────────────────────────
-  const [periodo,        setPeriodo]        = useState<PeriodoMatricula | null>(null)
+  const [periodo,        setPeriodo]        = useState<ProcesoInscripcion | null>(null)
   const [periodoAbierto, setPeriodoAbierto] = useState(false)
   const [loadingPeriodo, setLoadingPeriodo] = useState(true)
 
   useEffect(() => {
-    periodoMatriculaApi.getActivo()
+    procesosInscripcionApi.getVigente()
       .then((res) => { setPeriodo(res.data ?? null); setPeriodoAbierto(res.abierto) })
       .catch(() => {})
       .finally(() => setLoadingPeriodo(false))
@@ -243,7 +244,7 @@ export default function DashboardPage() {
       {!loadingPeriodo && (
         <section>
           {periodoAbierto && periodo ? (
-            <PeriodoBanner periodo={periodo} onIrAMatriculas={() => router.push("/dashboard/matriculas/nueva")} />
+            <PeriodoBanner periodo={periodo} onIrAMatriculas={() => router.push("/dashboard/matriculas/nuevo")} />
           ) : (
             <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 px-5 py-3">
               <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -337,10 +338,10 @@ function PeriodoBanner({
   periodo,
   onIrAMatriculas,
 }: {
-  periodo:          PeriodoMatricula
+  periodo:          ProcesoInscripcion
   onIrAMatriculas:  () => void
 }) {
-  const diasRestantes = calcularDiasRestantes(periodo.fecha_fin as unknown as string)
+  const diasRestantes = calcularDiasRestantes(periodo.fecha_fin_inscripcion as unknown as string)
   const urgente       = diasRestantes <= 5
 
   return (
@@ -364,11 +365,11 @@ function PeriodoBanner({
         <p className={`text-sm font-semibold ${urgente ? "text-warning-foreground" : "text-success"}`}>
           {urgente
             ? `El proceso de matrícula cierra en ${diasRestantes} día${diasRestantes !== 1 ? "s" : ""}`
-            : `Proceso de matrícula activo — ${periodo.descripcion ?? `Año ${periodo.anio}`}`
+            : `Proceso de matrícula activo — ${periodo.periodo_descripcion ?? `Año ${periodo.anio}`}`
           }
         </p>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Cierra el {formatFechaCorta(periodo.fecha_fin as unknown as string)}
+          Cierra el {formatFechaCorta(periodo.fecha_fin_inscripcion as unknown as string)}
         </p>
       </div>
 
