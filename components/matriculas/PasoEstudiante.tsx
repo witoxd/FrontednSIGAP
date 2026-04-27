@@ -103,14 +103,10 @@ export function PasoEstudiante({
     setYaMatriculado(false)
 
     try {
-      // Buscar matrículas activas del estudiante para este período
-      const matriculas = await matriculasApi.getAll(50, 0)
-      const tieneMatricula = (matriculas.data ?? []).some(
-        (m) => m.estudiante_id === est.estudiante.estudiante_id
-        // El backend ya filtra por período activo en la creación,
-        // pero chequeamos del lado del cliente para dar feedback inmediato
-      )
-      setYaMatriculado(tieneMatricula)
+      // Buscar todas las matrículas del estudiante en el período activo
+      const tieneMatricula = await matriculasApi.findMatriculaAndPeriodo(Number(est.estudiante.estudiante_id), periodoId)
+
+      setYaMatriculado(tieneMatricula.success)
     } catch {
       // Si falla la verificación, dejamos continuar —
       // el backend lo bloqueará con 409 si corresponde

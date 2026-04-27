@@ -5,13 +5,13 @@ import { Loader2, Users, Briefcase, Phone } from "lucide-react"
 import { PersonaForm, type PersonaFormData } from "@/components/personas/persona-form"
 import { ContactoManager } from "@/components/shared/contactos/contacto-manager"
 import { profesoresApi } from "@/lib/api/services/profesores"
-import type { ProfesorWitchPersonaDocumento } from "@/lib/types"
+import type { ProfesorWitchPersonaDocumento, Persona, Profesor } from "@/lib/types"
+import { toast } from "sonner"
 
 // ── Tipos internos ────────────────────────────────────────────────────────────
 
-interface ProfesorFormData {
-  fecha_contratacion: string
-  estado: "activo" | "inactivo"
+interface ProfesorFormData extends Profesor {
+
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -49,12 +49,13 @@ interface ProfesorFormProps {
    */
   profesorId?: number
   onCancel?: () => void
+  modo: "crear" | "editar"
 }
 
 // ── Componente ────────────────────────────────────────────────────────────────
 
-export function ProfesorForm({ profesorId, onCancel }: ProfesorFormProps) {
-  const modo = profesorId ? "editar" : "crear"
+export function ProfesorForm({ profesorId, modo, onCancel }: ProfesorFormProps) {
+  modo = profesorId ? "editar" : "crear"
 
   // ── IDs — necesarios para desbloquear ContactoManager ─────────────────────
   const [idPersona,  setIdPersona]  = useState<number | null>(null)
@@ -67,7 +68,23 @@ export function ProfesorForm({ profesorId, onCancel }: ProfesorFormProps) {
   const [error,           setError]           = useState<string | null>(null)
 
   // ── Datos de formulario ───────────────────────────────────────────────────
-  const [personaData,  setPersonaData]  = useState<PersonaFormData>()
+
+    const [personaData, setPersonaData] = useState<PersonaFormData>({
+    nombres: "",
+    apellido_paterno: "",
+    apellido_materno: "",
+    tipo_documento_id: 0,
+    numero_documento: "",
+    fecha_nacimiento: "",
+    genero: "Masculino",
+    serial_registro_civil: "",
+    grupo_sanguineo: "",
+    grupo_etnico: "",
+    credo_religioso: "",
+    lugar_nacimiento: "",
+    expedida_en: "",
+  })
+  
   const [profesorData, setProfesorData] = useState<ProfesorFormData>({
     fecha_contratacion: "",
     estado:             "activo",
@@ -75,6 +92,7 @@ export function ProfesorForm({ profesorId, onCancel }: ProfesorFormProps) {
 
   // ── Carga inicial (modo editar) ───────────────────────────────────────────
   useEffect(() => {
+
     if (modo !== "editar" || !profesorId) return
 
     async function cargar() {
@@ -105,13 +123,13 @@ export function ProfesorForm({ profesorId, onCancel }: ProfesorFormProps) {
 
     try {
       const dto = {
-        persona:  { ...personaData } as any,
+        persona:  { ...personaData } as Persona,
         profesor: {
           estado: profesorData.estado,
           ...(profesorData.fecha_contratacion && {
             fecha_contratacion: profesorData.fecha_contratacion,
           }),
-        },
+        } as ProfesorFormData,
       }
 
       if (modo === "crear") {

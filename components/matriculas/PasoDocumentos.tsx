@@ -2,7 +2,7 @@
 
 import {
   ArrowLeft, Upload, Loader2, AlertCircle,
-  User, BookOpen, Clock, CheckCircle2,
+  User, BookOpen, Clock, CheckCircle2, Tag,
 } from "lucide-react"
 import useSWR from "swr"
 import { swrFetcher } from "@/lib/api/fetcher"
@@ -33,9 +33,10 @@ interface PasoDocumentosProps {
   guardando:    boolean
   progress:     number
   resumen: {
-    estudiante: EstudianteWithPersonaDocumento
-    cursoId:    number
-    jornadaId:  number
+    estudiante:    EstudianteWithPersonaDocumento
+    cursoId:       number
+    jornadaId:     number
+    procesoNombre?: string
   }
   onSubmit:    () => void
   onAnterior:  () => void
@@ -82,7 +83,21 @@ export function PasoDocumentos({
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
           Resumen de la matrícula
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className={`grid gap-3 ${resumen.procesoNombre ? "grid-cols-1 sm:grid-cols-4" : "grid-cols-1 sm:grid-cols-3"}`}>
+
+          {resumen.procesoNombre && (
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                <Tag className="h-4 w-4 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">Proceso</p>
+                <p className="text-sm font-medium text-foreground truncate">
+                  {resumen.procesoNombre}
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">

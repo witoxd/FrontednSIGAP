@@ -6,6 +6,7 @@ import { Check, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { periodoMatriculaApi, type PeriodoMatricula } from "@/lib/api/services/periodoMatricula"
+import { procesosInscripcionApi, type ProcesoInscripcion } from "@/lib/api/services/procesosInscripcion"
 import { matriculasApi }  from "@/lib/api/services/matriculas"
 import {
   slotsToApiInput,
@@ -34,6 +35,7 @@ const PASOS: { label: string; descripcion: string }[] = [
 // Estado compartido entre pasos — análogo al "expediente" en construcción
 export interface MatriculaState {
   periodo:     PeriodoMatricula | null
+  proceso:     ProcesoInscripcion | null
   estudiante:  EstudianteWithPersonaDocumento | null
   cursoId:     number | null
   jornadaId:   number | null
@@ -50,6 +52,7 @@ export function MatriculaStepper() {
 
   const [state, setState] = useState<MatriculaState>({
     periodo:    null,
+    proceso:    null,
     estudiante: null,
     cursoId:    null,
     jornadaId:  null,
@@ -78,11 +81,18 @@ export function MatriculaStepper() {
   // ── Submit final ───────────────────────────────────────────────────────────
 
   async function handleSubmit() {
-    // Verificar período en tiempo real — puede haber cerrado mientras
-    // el admin completaba el formulario
-    const check = await periodoMatriculaApi.getActivo().catch(() => null)
-    if (!check?.abierto) {
+    // Verificar período y proceso en tiempo real — pueden haber cerrado
+    // mientras el admin completaba el formulario
+    const [checkPeriodo, checkProceso] = await Promise.all([
+      periodoMatriculaApi.getActivo().catch(() => null),
+      procesosInscripcionApi.getVigente().catch(() => null),
+    ])
+    if (!checkPeriodo?.abierto) {
       toast.error("El período de matrícula cerró. No se puede continuar.")
+      return
+    }
+    if (!checkProceso?.abierto) {
+      toast.error("El proceso de inscripción cerró. No se puede continuar.")
       return
     }
 
@@ -195,8 +205,8 @@ export function MatriculaStepper() {
         {paso === 0 && (
           <PasoPeriodo
             periodo={state.periodo}
-            onConfirmar={(periodo) => {
-              setState((prev) => ({ ...prev, periodo }))
+            onConfirmar={(periodo, proceso) => {
+              setState((prev) => ({ ...prev, periodo, proceso }))
               avanzar()
             }}
           />
@@ -234,9 +244,10 @@ export function MatriculaStepper() {
             guardando={guardando}
             progress={progress}
             resumen={{
-              estudiante: state.estudiante!,
-              cursoId:    state.cursoId!,
-              jornadaId:  state.jornadaId!,
+              estudiante:   state.estudiante!,
+              cursoId:      state.cursoId!,
+              jornadaId:    state.jornadaId!,
+              procesoNombre: state.proceso?.nombre,
             }}
             onSubmit={handleSubmit}
             onAnterior={retroceder}

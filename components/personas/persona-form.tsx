@@ -62,14 +62,11 @@ export function PersonaForm({
    * 1. Precargamos todos los campos del form con sus datos.
    * 2. Guardamos la persona para mostrar el badge.
    * 3. Notificamos al padre con el persona_id.
-   *
-   * Analogía: es como autocompletar un formulario de envío
-   * cuando ya tenés la dirección guardada — solo confirmás, no reescribís.
    */
   function handlePersonaSeleccionada(persona: PersonaWithTipoDocumento) {
     const nuevaData: Persona = {
       persona_id:           persona.persona_id,
-      nombres:              persona.nombres,
+      nombres:              persona.nombres ?? "",
       apellido_paterno:     persona.apellido_paterno  ?? "",
       apellido_materno:     persona.apellido_materno  ?? "",
       tipo_documento_id:    persona.tipo_documento.tipo_documento_id,
@@ -110,6 +107,7 @@ export function PersonaForm({
   const handleChange = (field: keyof PersonaFormData, value: string | number) => {
     onChange({ ...data, [field]: value })
   }
+  
 
   return (
     <div className="flex flex-col gap-6">
