@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import {
   Plus, Search, Loader2, ClipboardList,
-  Lock, CheckCircle2, CalendarClock,
+  Lock, CheckCircle2, CalendarClock, Tag,
 } from "lucide-react"
 import { swrFetcher }            from "@/lib/api/fetcher"
 import { periodoMatriculaApi, type PeriodoMatricula } from "@/lib/api/services/periodoMatricula"
+import { procesosInscripcionApi, type ProcesoInscripcion } from "@/lib/api/services/procesosInscripcion"
 import { DataTable, type Column } from "@/components/shared/data-table"
 import { StatusBadge }           from "@/components/shared/status-badge"
 import type { PaginatedApiResponse, MatriculaConRelaciones } from "@/lib/types"
@@ -31,16 +32,23 @@ export default function MatriculasPage() {
 
   // ── Período activo ─────────────────────────────────────────────────────────
   const [periodo,        setPeriodo]        = useState<PeriodoMatricula | null>(null)
+  const [proceso,        setProceso]        = useState<ProcesoInscripcion | null>(null)
   const [periodoAbierto, setPeriodoAbierto] = useState(false)
+  const [procesoAbierto, setProcesoAbierto] = useState(false)
   const [loadingPeriodo, setLoadingPeriodo] = useState(true)
 
   useEffect(() => {
-    periodoMatriculaApi.getActivo()
-      .then((res) => {
-        setPeriodo(res.data ?? null)
-        setPeriodoAbierto(res.abierto)
+    Promise.all([
+      periodoMatriculaApi.getActivo(),
+      procesosInscripcionApi.getVigente(),
+    ])
+      .then(([periodoRes, procesoRes]) => {
+        setPeriodo(periodoRes.data ?? null)
+        setPeriodoAbierto(periodoRes.abierto)
+        setProceso(procesoRes.data ?? null)
+        setProcesoAbierto(procesoRes.abierto)
       })
-      .catch(() => setPeriodoAbierto(false))
+      .catch(() => { setPeriodoAbierto(false); setProcesoAbierto(false) })
       .finally(() => setLoadingPeriodo(false))
   }, [])
 
@@ -106,7 +114,8 @@ export default function MatriculasPage() {
 
         <PeriodoBanner
           periodo={periodo}
-          abierto={periodoAbierto}
+          proceso={proceso}
+          abierto={periodoAbierto && procesoAbierto}
           loading={loadingPeriodo}
         />
       </div>
@@ -126,7 +135,7 @@ export default function MatriculasPage() {
 
         {/* El botón solo aparece si el período está activo */}
         {!loadingPeriodo && (
-          periodoAbierto ? (
+          (periodoAbierto && procesoAbierto) ? (
             <button
               onClick={() => router.push("/dashboard/matriculas/nuevo")}
               className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shrink-0"
@@ -195,10 +204,12 @@ export default function MatriculasPage() {
 
 function PeriodoBanner({
   periodo,
+  proceso,
   abierto,
   loading,
 }: {
   periodo:  PeriodoMatricula | null
+  proceso:  ProcesoInscripcion | null
   abierto:  boolean
   loading:  boolean
 }) {
@@ -220,8 +231,9 @@ function PeriodoBanner({
     )
   }
 
+  const refFin = proceso?.fecha_fin_inscripcion ?? periodo.fecha_fin
   const diasRestantes = Math.ceil(
-    (new Date(periodo.fecha_fin).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    (new Date(refFin).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
   )
 
   return (
@@ -231,6 +243,12 @@ function PeriodoBanner({
         <span className="font-medium text-success">
           {periodo.descripcion ?? `Matrícula ${periodo.anio}`}
         </span>
+        {proceso && (
+          <span className="flex items-center gap-1 text-xs text-primary/80">
+            <Tag className="h-3 w-3" />
+            {proceso.nombre}
+          </span>
+        )}
         <span className="text-muted-foreground text-xs flex items-center gap-1">
           <CalendarClock className="h-3.5 w-3.5" />
           {diasRestantes > 0
