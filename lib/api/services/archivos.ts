@@ -61,7 +61,7 @@ async function abrirEnPestana(endpoint: string): Promise<void> {
   const blob = await fetchBlob(endpoint)
   const url  = URL.createObjectURL(blob)
   window.open(url, "_blank")
-  setTimeout(() => URL.revokeObjectURL(url), 10_000)
+  setTimeout(() => URL.revokeObjectURL(url), 100)
 }
 
 /**
@@ -77,7 +77,7 @@ async function descargar(archivoId: number, nombreSugerido?: string): Promise<vo
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(url), 10_000)
+  setTimeout(() => URL.revokeObjectURL(url), 100)
 }
 
 /**
@@ -124,17 +124,6 @@ export const archivosApi = {
   /** Lista todos los archivos de una persona (solo metadatos, sin el binario) */
   getByPersonaId: (personaId: number) =>
     api.get<ApiResponse<Archivo[]>>(`/archivos/getByPersonaId/${personaId}`),
-
-  /**
-   * Retorna la URL de vista previa de la foto de perfil de una persona.
-   * El endpoint devuelve la imagen directamente — construimos la URL
-   * con el token como query param para poder usarla en <img src>.
-   *
-   * NOTA: si el backend requiere Authorization header en lugar de query param,
-   * usar getPhotoBlob() + createObjectURL en su lugar.
-   */
-  getPhotoUrl: (personaId: number): string =>
-    `${API_BASE}/archivos/viewPhoto/${personaId}?token=${getToken() ?? ""}`,
 
   /** Obtiene la foto de perfil como Blob (para crear un ObjectURL) */
   getPhotoBlob: (personaId: number) =>

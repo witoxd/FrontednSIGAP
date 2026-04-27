@@ -15,4 +15,10 @@ export const jornadasApi = {
 
   create: (data: CreateJornadaInput) =>
     api.post<ApiResponse>("/jornadas/create", data),
+
+  update: (id: number, data: Partial<CreateJornadaInput>) =>
+    api.put<ApiResponse<Jornada>>(`/jornadas/update/${id}`, data),
+
+  delete: (id: number) =>
+    api.delete<ApiResponse>(`/jornadas/delete/${id}`),
 }

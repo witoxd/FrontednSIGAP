@@ -115,10 +115,12 @@ export const matriculasApi = {
       { limit, offset }
     ),
 
+    findMatriculaAndPeriodo: (estudianteId: number, matriculaId: number) =>
+      api.get<ApiResponse<MatriculaConRelaciones>>(`findMatriculaByEstudiante/estudiante/${estudianteId}/Matricula/${matriculaId}`),
+
   getById: (id: number) =>
     api.get<ApiResponse<MatriculaConRelaciones>>(`/matriculas/getById/${id}`),
 
-  processMatricula,
 
   update: (id: number, data: Partial<CreateMatriculaInput>) =>
     api.put<ApiResponse>(`/matriculas/update/${id}`, data),
