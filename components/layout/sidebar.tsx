@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useState } from "react"
 import {
   LayoutDashboard,
   Users,
@@ -11,6 +12,7 @@ import {
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   ContactRound,
   Building2,
   CalendarRange,
@@ -18,6 +20,7 @@ import {
   Clock,
   FolderArchive,
   IdCard,
+  Settings2,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth/auth-context"
 
@@ -67,24 +70,13 @@ const NAV_ITEMS: NavItem[] = [
     icon:  FileText,
     roles: ["admin"],
   },
-  {
-    href:  "/dashboard/configuracion/jornadas",
-    label: "Jornadas",
-    icon:  Clock,
-    roles: ["admin"],
-  },
-  {
-    href:  "/dashboard/configuracion/tipos-archivo",
-    label: "Tipos de Archivo",
-    icon:  FolderArchive,
-    roles: ["admin"],
-  },
-  {
-    href:  "/dashboard/configuracion/tipos-documento",
-    label: "Tipos Documento",
-    icon:  IdCard,
-    roles: ["admin"],
-  },
+]
+
+// Ítems que van dentro del acordeón "Administración" (solo admin, uso ocasional)
+const ADMIN_ACCORDION_ITEMS: NavItem[] = [
+  { href: "/dashboard/configuracion/jornadas",       label: "Jornadas",         icon: Clock,        roles: ["admin"] },
+  { href: "/dashboard/configuracion/tipos-archivo",  label: "Tipos de Archivo", icon: FolderArchive, roles: ["admin"] },
+  { href: "/dashboard/configuracion/tipos-documento", label: "Tipos Documento", icon: IdCard,        roles: ["admin"] },
 ]
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -99,11 +91,17 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname    = usePathname()
   const { hasRole } = useAuth()
+  const [adminOpen, setAdminOpen] = useState(false)
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard"
     return pathname === href || pathname.startsWith(href + "/")
   }
+
+  const isAdmin = hasRole("admin")
+
+  // Si algún ítem del acordeón está activo, ábrelo automáticamente
+  const adminAccordionActive = ADMIN_ACCORDION_ITEMS.some(i => isActive(i.href))
 
   // Filtra ítems según el rol del usuario actual
   const visibleItems = NAV_ITEMS.filter(item =>
@@ -143,15 +141,15 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         aria-label="Menú principal"
       >
         {visibleItems.map((item) => {
-          const active  = isActive(item.href)
-          const Icon    = item.icon
-          const isAdmin = item.roles?.includes("admin")
+          const active      = isActive(item.href)
+          const Icon        = item.icon
+          const itemIsAdmin = item.roles?.includes("admin")
 
           return (
             <div key={item.href}>
               {/* Separador de grupo */}
               {item.groupLabel && (
-                <div className={`mt-3 mb-1 ${collapsed ? "mx-auto w-8 border-t border-sidebar-accent" : "px-3"}`}>
+                <div className={`mt-3 mb-1 ${collapsed ? "mx-auto w-8" : "px-3"}`}>
                   {!collapsed && (
                     <span className="text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-widest">
                       {item.groupLabel}
@@ -173,14 +171,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               >
                 <Icon
                   className={`w-5 h-5 shrink-0 ${
-                    isAdmin && !active ? "text-red-400/70" : ""
+                    itemIsAdmin && !active ? "text-red-400/70" : ""
                   }`}
                 />
                 {!collapsed && (
                   <span className="flex-1">{item.label}</span>
                 )}
-                {/* Indicador visual de sección admin */}
-                {!collapsed && isAdmin && (
+                {!collapsed && itemIsAdmin && (
                   <span className="text-[10px] font-semibold text-red-400/60 uppercase tracking-wide">
                     admin
                   </span>
@@ -189,6 +186,82 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             </div>
           )
         })}
+
+        {/* ── Acordeón "Administración" — solo admin ── */}
+        {isAdmin && (
+          <div className="mt-1">
+            <button
+              onClick={() => setAdminOpen(o => !o)}
+              title={collapsed ? "Administración" : undefined}
+              className={`w-full flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium transition-colors
+                ${collapsed ? "justify-center px-0" : "px-3"}
+                ${adminAccordionActive
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                }`}
+            >
+              <Settings2 className={`w-5 h-5 shrink-0 text-red-400/70`} />
+              {!collapsed && (
+                <>
+                  <span className="flex-1 text-left">Administración</span>
+                  <ChevronDown
+                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                      adminOpen || adminAccordionActive ? "rotate-180" : ""
+                    }`}
+                  />
+                </>
+              )}
+            </button>
+
+            {/* Ítems del acordeón */}
+            {(adminOpen || adminAccordionActive) && !collapsed && (
+              <div className="mt-0.5 flex flex-col gap-0.5 pl-3 border-l border-sidebar-accent ml-4">
+                {ADMIN_ACCORDION_ITEMS.map((item) => {
+                  const active = isActive(item.href)
+                  const Icon   = item.icon
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-3 rounded-lg py-2 px-3 text-sm font-medium transition-colors
+                        ${active
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                        }`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span className="flex-1">{item.label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* En modo colapsado: tooltip-like con los ítems al hacer hover (solo icono) */}
+            {collapsed && (adminOpen || adminAccordionActive) && (
+              <div className="flex flex-col gap-0.5 mt-0.5">
+                {ADMIN_ACCORDION_ITEMS.map((item) => {
+                  const active = isActive(item.href)
+                  const Icon   = item.icon
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      title={item.label}
+                      className={`flex justify-center rounded-lg py-2 text-sm transition-colors
+                        ${active
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50"
+                        }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       {/* ── Toggle collapse ── */}
