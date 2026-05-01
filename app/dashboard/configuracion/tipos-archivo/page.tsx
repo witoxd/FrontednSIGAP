@@ -3,12 +3,35 @@
 import { useState, useEffect } from "react"
 import useSWR from "swr"
 import { toast } from "sonner"
-import { FolderArchive, Plus, Loader2, Pencil, Trash2, X, CheckCircle2, XCircle } from "lucide-react"
+import { FolderArchive, Plus, Loader2, Pencil, Trash2, X, CheckCircle2, XCircle, ChevronDown } from "lucide-react"
 import { swrFetcher } from "@/lib/api/fetcher"
 import { tiposArchivosApi } from "@/lib/api/services/tipos-archivos"
-import type { TipoArchivo, PaginatedApiResponse } from "@/lib/types"
+import type { TipoArchivo, PaginatedApiResponse, ContextoArchivo } from "@/lib/types"
 
-const APLICA_A_OPTIONS = ["estudiante", "profesor", "administrativo", "acudiente", "matricula"] as const
+const CONTEXTO_OPTIONS: ContextoArchivo[] = ["estudiante", "profesor", "administrativo", "acudiente", "matricula"]
+
+const EXT_GRUPOS = [
+  {
+    label: "Documentos",
+    exts:  ["pdf", "doc", "docx", "txt"],
+  },
+  // {
+  //   label: "Hojas de cálculo",
+  //   exts:  ["xls", "xlsx", "ods", "csv"],
+  // },
+  {
+    label: "Imágenes",
+    exts:  ["jpg", "jpeg", "png", "webp", "gif"],
+  },
+  // {
+  //   label: "Comprimidos",
+  //   exts:  ["zip", "rar", "7z", "tar", "gz"],
+  // },
+  // {
+  //   label: "Otros",
+  //   exts:  ["xml", "json", "mp4", "mp3"],
+  // },
+] as const
 
 // ── Drawer ────────────────────────────────────────────────────────────────────
 
@@ -20,26 +43,55 @@ interface TipoArchivoDrawerProps {
 }
 
 function TipoArchivoDrawer({ open, editando, onClose, onSuccess }: TipoArchivoDrawerProps) {
-  const [nombre,      setNombre]      = useState("")
-  const [descripcion, setDescripcion] = useState("")
-  const [extensiones, setExtensiones] = useState("")
-  const [activo,      setActivo]      = useState(true)
-  const [aplicaA,     setAplicaA]     = useState<string[]>([])
-  const [saving,      setSaving]      = useState(false)
+  const [nombre,       setNombre]       = useState("")
+  const [descripcion,  setDescripcion]  = useState("")
+  const [extensiones,  setExtensiones]  = useState<string[]>([])
+  const [extOpen,      setExtOpen]      = useState(false)
+  const [activo,       setActivo]       = useState(true)
+  const [aplicaA,      setAplicaA]      = useState<ContextoArchivo[]>([])
+  const [requeridoEn,  setRequeridoEn]  = useState<ContextoArchivo[]>([])
+  const [saving,       setSaving]       = useState(false)
 
   useEffect(() => {
     if (open) {
       setNombre(editando?.nombre ?? "")
       setDescripcion(editando?.descripcion ?? "")
-      setExtensiones((editando?.extensiones_permitidas ?? []).join(", "))
+      // Normalizar: quitar punto inicial para el estado interno
+      setExtensiones(
+        (editando?.extensiones_permitidas ?? []).map(e => e.replace(/^\./, ""))
+      )
+      setExtOpen(false)
       setActivo(editando?.activo ?? true)
-      const raw = editando?.aplica_a
-      setAplicaA(raw ? (Array.isArray(raw) ? raw : [raw]) : [])
+      setAplicaA(editando?.aplica_a ?? [])
+      setRequeridoEn(editando?.requerido_en ?? [])
     }
   }, [open, editando])
 
-  function toggleAplicaA(val: string) {
-    setAplicaA(prev =>
+  // ext viene del botón con punto (.pdf) — el estado guarda sin punto
+  function toggleExt(ext: string) {
+    const key = ext.replace(/^\./, "")
+    setExtensiones(prev =>
+      prev.includes(key) ? prev.filter(e => e !== key) : [...prev, key]
+    )
+  }
+
+  function extActiva(ext: string) {
+    return extensiones.includes(ext.replace(/^\./, ""))
+  }
+
+  function toggleAplicaA(val: ContextoArchivo) {
+    setAplicaA(prev => {
+      const next = prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]
+      // Si se desactiva de aplica_a, también se saca de requerido_en
+      if (!next.includes(val)) {
+        setRequeridoEn(r => r.filter(v => v !== val))
+      }
+      return next
+    })
+  }
+
+  function toggleRequeridoEn(val: ContextoArchivo) {
+    setRequeridoEn(prev =>
       prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]
     )
   }
@@ -49,28 +101,31 @@ function TipoArchivoDrawer({ open, editando, onClose, onSuccess }: TipoArchivoDr
     if (!nombre.trim()) return
     setSaving(true)
     try {
-      const exts = extensiones
-        .split(",")
-        .map(s => s.trim().replace(/^\./, ""))
-        .filter(Boolean)
+      // El backend y la BD almacenan extensiones con punto (.pdf)
+      const extsConPunto = extensiones.map(e => `.${e}`)
 
       if (editando) {
         await tiposArchivosApi.update(editando.tipo_archivo_id, {
           tipo_archivo: {
             nombre:                 nombre.trim(),
             descripcion:            descripcion.trim() || undefined,
-            extensiones_permitidas: exts.length ? exts : undefined,
+            extensiones_permitidas: extsConPunto.length ? extsConPunto : undefined,
             activo,
+            aplica_a:               aplicaA.length ? aplicaA : undefined,
+            requerido_en:           requeridoEn.length ? requeridoEn : undefined,
           }
         })
         toast.success("Tipo de archivo actualizado")
       } else {
         await tiposArchivosApi.create({
-          tipo_archivo_id:        0,
-          nombre:                 nombre.trim(),
-          descripcion:            descripcion.trim() || undefined,
-          extensiones_permitidas: exts.length ? exts : undefined,
-          activo,
+          tipo_archivo: {
+            nombre:                 nombre.trim(),
+            descripcion:            descripcion.trim() || undefined,
+            extensiones_permitidas: extsConPunto.length ? extsConPunto : undefined,
+            activo,
+            aplica_a:               aplicaA.length ? aplicaA : undefined,
+            requerido_en:           requeridoEn.length ? requeridoEn : undefined,
+          }
         })
         toast.success("Tipo de archivo creado")
       }
@@ -125,22 +180,94 @@ function TipoArchivoDrawer({ open, editando, onClose, onSuccess }: TipoArchivoDr
             />
           </div>
 
+          {/* Extensiones permitidas */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">Extensiones permitidas</label>
-            <input
-              type="text"
-              value={extensiones}
-              onChange={e => setExtensiones(e.target.value)}
-              placeholder="pdf, jpg, png"
-              className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-            <p className="text-xs text-muted-foreground">Separadas por coma</p>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">Extensiones permitidas</label>
+              {extensiones.length > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {extensiones.length} seleccionada{extensiones.length !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+
+            {/* Chips de extensiones seleccionadas  */}
+            {extensiones.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {extensiones.map(ext => (
+                  <span
+                    key={ext}
+                    className="inline-flex items-center gap-1 rounded-md bg-primary/10 border border-primary/20 px-2 py-0.5 text-xs font-mono font-medium text-primary"
+                  >
+                    .{ext}
+                    <button
+                      type="button"
+                      onClick={() => setExtensiones(prev => prev.filter(e => e !== ext))}
+                      className="hover:text-destructive transition-colors"
+                      aria-label={`Quitar .${ext}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Acordeón de categorías */}
+            <div className="rounded-lg border border-border overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setExtOpen(v => !v)}
+                className="flex w-full items-center justify-between px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+              >
+                <span className="text-muted-foreground text-xs">
+                  {extOpen ? "Cerrar selector" : "Seleccionar extensiones"}
+                </span>
+                <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${extOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {extOpen && (
+                <div className="border-t border-border divide-y divide-border">
+                  {EXT_GRUPOS.map(grupo => (
+                    <div key={grupo.label} className="px-3 py-2.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 mb-2">
+                        {grupo.label}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {grupo.exts.map(ext => (
+                          <button
+                            key={ext}
+                            type="button"
+                            onClick={() => toggleExt(ext)}
+                            className={`rounded-md px-2.5 py-1 text-xs font-mono font-medium border transition-colors ${
+                              extActiva(ext)
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
+                            }`}
+                          >
+                            {ext}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {extensiones.length === 0 && !extOpen && (
+              <p className="text-xs text-muted-foreground">
+                Sin restricción — se aceptan todos los tipos de archivo
+              </p>
+            )}
           </div>
 
+          {/* Aplica a */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-foreground">Aplica a</label>
+            <p className="text-xs text-muted-foreground -mt-1">Contextos donde este tipo de archivo es relevante</p>
             <div className="flex flex-wrap gap-2">
-              {APLICA_A_OPTIONS.map(opt => (
+              {CONTEXTO_OPTIONS.map(opt => (
                 <button
                   key={opt}
                   type="button"
@@ -156,6 +283,32 @@ function TipoArchivoDrawer({ open, editando, onClose, onSuccess }: TipoArchivoDr
               ))}
             </div>
           </div>
+
+          {/* Obligatorio en — solo muestra los que ya están en aplica_a */}
+          {aplicaA.length > 0 && (
+            <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3">
+              <label className="text-sm font-medium text-foreground">Obligatorio en</label>
+              <p className="text-xs text-muted-foreground -mt-1">
+                Marcar los contextos donde el documento es <strong>requerido</strong> (sin él no se puede completar el proceso)
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {aplicaA.map(opt => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => toggleRequeridoEn(opt)}
+                    className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors capitalize ${
+                      requeridoEn.includes(opt)
+                        ? "bg-amber-500 text-white border-amber-500"
+                        : "bg-background text-muted-foreground border-border hover:border-amber-400/60"
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-3">
             <button
@@ -284,7 +437,7 @@ export default function TiposArchivoPage() {
                 <tr className="border-b border-border">
                   <th className="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">Nombre</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">Extensiones</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">Aplica a</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">Aplica a / Obligatorio</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">Estado</th>
                   <th className="px-5 py-3 w-20" />
                 </tr>
@@ -300,17 +453,29 @@ export default function TiposArchivoPage() {
                       <div className="flex flex-wrap gap-1">
                         {(t.extensiones_permitidas ?? []).map(ext => (
                           <span key={ext} className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono font-medium text-foreground">
-                            .{ext}
+                            {ext}
                           </span>
                         ))}
                         {!t.extensiones_permitidas?.length && <span className="text-muted-foreground text-xs">—</span>}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      {t.aplica_a
-                        ? <span className="text-xs capitalize text-muted-foreground">{Array.isArray(t.aplica_a) ? (t.aplica_a as string[]).join(", ") : t.aplica_a}</span>
-                        : <span className="text-muted-foreground text-xs">—</span>
-                      }
+                      <div className="flex flex-wrap gap-1">
+                        {(t.aplica_a ?? []).map(ctx => (
+                          <span
+                            key={ctx}
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${
+                              t.requerido_en?.includes(ctx)
+                                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {ctx}
+                            {t.requerido_en?.includes(ctx) && <span className="ml-0.5">*</span>}
+                          </span>
+                        ))}
+                        {!t.aplica_a?.length && <span className="text-muted-foreground text-xs">—</span>}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       {t.activo

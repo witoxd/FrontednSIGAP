@@ -26,6 +26,7 @@ const ROL_LABELS: Record<RolValue, string> = {
 }
 
 const GENEROS = ["Masculino", "Femenino", "Otro"] as const
+const GRUPOS_SANGUINEOS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const
 
 interface CredencialesForm {
   username:   string
@@ -49,6 +50,7 @@ interface PersonaSimpleForm {
   numero_documento:  string
   fecha_nacimiento:  string
   genero:            string
+  grupo_sanguineo:   string
 }
 
 const personaVacia: PersonaSimpleForm = {
@@ -59,6 +61,7 @@ const personaVacia: PersonaSimpleForm = {
   numero_documento:  "",
   fecha_nacimiento:  "",
   genero:            "",
+  grupo_sanguineo:   "",
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -87,7 +90,7 @@ export function UsuarioDrawer({ open, onClose, onSuccess }: UsuarioDrawerProps) 
 
   // Tipos de documento para el select del paso 1 de Modo B
   const { data: tiposDocData } = useSWR<{ success: boolean; data: TipoDocumento[] }>(
-    "/tipos-documento",
+    "/tipos-documento/getAll",
     swrFetcher,
   )
   const tiposDoc = tiposDocData?.data ?? []
@@ -153,17 +156,12 @@ export function UsuarioDrawer({ open, onClose, onSuccess }: UsuarioDrawerProps) 
         persona: {
           nombres:           personaB.nombres,
           apellido_paterno:  personaB.apellido_paterno,
-          apellido_materno:  personaB.apellido_materno,
+          apellido_materno:  personaB.apellido_materno || undefined,
           tipo_documento_id: Number(personaB.tipo_documento_id),
           numero_documento:  personaB.numero_documento,
           fecha_nacimiento:  personaB.fecha_nacimiento,
           genero:            personaB.genero as Persona["genero"],
-          grupo_sanguineo:   "",
-          grupo_etnico:      "",
-          credo_religioso:   "",
-          lugar_nacimiento:  "",
-          serial_registro_civil: "",
-          expedida_en:       "",
+          grupo_sanguineo:   personaB.grupo_sanguineo || undefined,
         },
         user: {
           username:   credsB.username,
@@ -409,6 +407,17 @@ export function UsuarioDrawer({ open, onClose, onSuccess }: UsuarioDrawerProps) 
                       </select>
                     </Field>
                   </div>
+
+                  <Field label="Grupo sanguíneo">
+                    <select
+                      value={personaB.grupo_sanguineo}
+                      onChange={e => setPersonaB(p => ({ ...p, grupo_sanguineo: e.target.value }))}
+                      className={inputCls}
+                    >
+                      <option value="">No especificado</option>
+                      {GRUPOS_SANGUINEOS.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </Field>
                 </div>
               )}
 

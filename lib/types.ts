@@ -49,17 +49,17 @@ export interface Persona {
   persona_id?: number
   nombres: string
   apellido_paterno: string
-  apellido_materno: string
+  apellido_materno?: string
   tipo_documento_id: number
   numero_documento: string
   fecha_nacimiento: string
   genero: "Masculino" | "Femenino" | "Otro"
-  grupo_sanguineo: string
-  grupo_etnico: string
-  credo_religioso: string
-  lugar_nacimiento: string
-  serial_registro_civil: string
-  expedida_en: string
+  grupo_sanguineo?: string
+  grupo_etnico?: string
+  credo_religioso?: string
+  lugar_nacimiento?: string
+  serial_registro_civil?: string
+  expedida_en?: string
 }
 export interface PersonaWithTipoDocumentoJSON {
   persona: PersonaWithTipoDocumento
@@ -416,14 +416,16 @@ export interface Archivo {
   fecha_subida: string
 }
 
+export type ContextoArchivo = "estudiante" | "profesor" | "administrativo" | "acudiente" | "matricula"
+
 export interface TipoArchivo {
   tipo_archivo_id: number
   nombre: string
   descripcion?: string
   extensiones_permitidas?: string[]
   activo?: boolean
-  aplica_a: "estudiante" | "profesor" | "administrativo" | "acudiente" | "matricula"
-  requerido_en: "estudiante" | "profesor" | "administrativo" | "acudiente" | "matricula" | []
+  aplica_a?: ContextoArchivo[]
+  requerido_en?: ContextoArchivo[]
 }
 
 export interface CreateArchivoInput {
@@ -445,20 +447,22 @@ export interface BulkCreateArchivoResponse {
   data: Archivo[]
 }
 
-export interface CreateTipoArchivoInput {
+export interface TipoArchivo {
   tipo_archivo_id: number
   nombre: string
   descripcion?: string
   extensiones_permitidas?: string[]
   activo?: boolean
+  aplica_a?: ContextoArchivo[]
+  requerido_en?: ContextoArchivo[]
+}
+
+export interface CreateTipoArchivoInput {
+  tipo_archivo: Omit<TipoArchivo, "tipo_archivo_id">
 }
 
 export interface UpdateTipoArchivoInput {
-  tipo_archivo: Partial<CreateTipoArchivoInput>
-}
-
-export interface TipoArchivo extends CreateTipoArchivoInput {
-
+  tipo_archivo: Partial<Omit<TipoArchivo, "tipo_archivo_id">>
 }
 
 

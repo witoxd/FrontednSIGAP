@@ -241,12 +241,11 @@ export function PasoEstudiante({
         <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 px-4 py-3">
           <AlertCircle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-warning-foreground">
+            <p className="text-sm font-medium text-muted-foreground text-warning ">
               Estudiante ya matriculado en este período
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {nombreCompleto(seleccionado)} ya tiene una matrícula registrada en el período activo.
-              El sistema asociará los nuevos documentos a la matrícula existente.
             </p>
           </div>
         </div>
