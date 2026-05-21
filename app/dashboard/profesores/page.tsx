@@ -22,6 +22,7 @@ const PAGE_SIZE = 20
 function mapSearchResult(raw: any): ProfesorWitchPersonaDocumento {
   return {
     persona: raw.persona ?? raw,
+    docente: raw.docente ?? raw,
     profesor: raw.profesor ?? raw,
   }
 }
@@ -75,16 +76,11 @@ export default function ProfesoresPage() {
   // ── Columnas ──────────────────────────────────────────────────────────────
   const columns: Column<ProfesorWitchPersonaDocumento>[] = [
     {
-      key: "profesor_id",
-      header: "ID",
-      render: (p) => p.profesor.profesor_id,
-    },
-    {
       key: "nombres",
       header: "Nombre completo",
       render: (p) =>
         `${p.persona.nombres ?? ""} ${p.persona.apellido_paterno ?? ""} ${p.persona.apellido_materno ?? ""}`.trim() ||
-        `Profesor #${p.profesor.profesor_id}`,
+        "Sin nombre registrado",
     },
     {
       key: "numero_documento",
@@ -95,14 +91,14 @@ export default function ProfesoresPage() {
       key: "fecha_contratacion",
       header: "Contratación",
       render: (p) =>
-        p.profesor.fecha_contratacion
-          ? new Date(p.profesor.fecha_contratacion).toLocaleDateString("es-CO")
+        p.docente.fecha_contratacion
+          ? new Date(p.docente.fecha_contratacion).toLocaleDateString("es-CO")
           : "—",
     },
     {
       key: "estado",
       header: "Estado",
-      render: (p) => <StatusBadge status={p.profesor.estado} />,
+      render: (p) => <StatusBadge status={p.docente.estado} />,
     },
   ]
 
