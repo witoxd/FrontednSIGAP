@@ -68,6 +68,59 @@
 
 
 
+/* ============================================================
+   SIGAP — Tokens de marca crudos (paleta base)
+   Disponibles para uso directo: var(--navy-700), var(--gold-300)…
+   No los toques: son la fuente de verdad de la marca.
+   ============================================================ */
+:root {
+  /* Navy — del escudo */
+  --navy-950: #030a18;
+  --navy-900: #060e1f;
+  --navy-850: #050810;
+  --navy-800: #0a0f1e;
+  --navy-700: #0f172a;
+  --navy-600: #111827;
+  --navy-500: #1e293b;
+  --navy-400: #1e3a6e;
+  --navy-300: #243d6e;
+  --navy-200: #3d5a80;
+  --navy-100: #5577a0;
+  --navy-050: #b8cce0;
+
+  /* Gold — heraldic */
+  --gold-100: #edd97a;
+  --gold-200: #e8c76d;
+  --gold-300: #c9a84c;
+  --gold-400: #b8902a;
+  --gold-500: #a87d28;
+  --gold-600: #9a7020;
+  --gold-glow: rgba(201, 168, 76, 0.35);
+
+  /* Blue — primary light mode */
+  --blue-50:  #e0f2fe;
+  --blue-100: #93c5fd;
+  --blue-300: #4a8fe8;
+  --blue-700: #1e40af;
+  --blue-900: #0c4a6e;
+
+  /* Slate — neutral scaffolding */
+  --slate-50:  #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-700: #334155;
+  --slate-900: #0f172a;
+
+  /* Tracking */
+  --tracking-tight:  -0.02em;
+  --tracking-wide:    0.06em;
+  --tracking-wider:   0.16em;
+  --tracking-widest:  0.28em;
+}
+
 :root {
   --radius: 0.625rem;
   --background: #f8fafc;
@@ -178,3 +231,131 @@
     color: #e8edf5;            /* --foreground */
   }
 }
+
+/* ============================================================
+   SIGAP — Clases tema explícitas (handoff design system)
+
+   El proyecto usa `:root` + `.dark` por defecto (light = root).
+   Estas clases existen como ALIAS para poder marcar superficies
+   con un tema explícito (ej. una página con tema marino aunque
+   el resto esté en claro). No reemplazan al sistema actual.
+   ============================================================ */
+
+/* App light: alias semántico de :root */
+.theme-app-light {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #1e40af;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #334155;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #e0f2fe;
+  --accent-foreground: #0c4a6e;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #1e40af;
+  --sidebar: #0f172a;
+  --sidebar-foreground: #cbd5e1;
+  --sidebar-accent: #1e293b;
+  --sidebar-accent-foreground: #f8fafc;
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+  --warning: #d97706;
+  --warning-foreground: #ffffff;
+}
+
+/* App dark: alias semántico de .dark */
+.theme-app-dark {
+  --background: #0a0f1e;
+  --foreground: #e8edf5;
+  --card: #111827;
+  --card-foreground: #e8edf5;
+  --popover: #111827;
+  --popover-foreground: #e8edf5;
+  --primary: #c9a84c;
+  --primary-foreground: #0a0f1e;
+  --secondary: #1e293b;
+  --secondary-foreground: #94a3b8;
+  --muted: #1e293b;
+  --muted-foreground: #64748b;
+  --accent: #1e3a6e;
+  --accent-foreground: #93c5fd;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #2d3748;
+  --input: #1a2236;
+  --ring: #c9a84c;
+  --sidebar: #050810;
+  --sidebar-foreground: #94a3b8;
+  --sidebar-accent: #111827;
+  --sidebar-accent-foreground: #e8edf5;
+  --success: #22c55e;
+  --success-foreground: #0a0f1e;
+  --warning: #f59e0b;
+  --warning-foreground: #0a0f1e;
+}
+
+/* Marine: el tema gateway (login). Navy profundo + dorado. */
+.theme-marine {
+  --background: #060e1f;
+  --foreground: #b8cce0;
+  --card: rgba(6, 14, 31, 0.82);
+  --card-foreground: #b8cce0;
+  --popover: #060e1f;
+  --popover-foreground: #b8cce0;
+  --primary: #c9a84c;
+  --primary-foreground: #060e1f;
+  --muted: #1e293b;
+  --muted-foreground: #3d5a80;
+  --accent: #1e3a6e;
+  --accent-foreground: #93c5fd;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.07);
+  --input: #030a18;
+  --ring: rgba(201, 168, 76, 0.5);
+  --success: #16a34a;
+  --warning: #d97706;
+}
+
+/* ============================================================
+   Tipografía semántica del design system
+   Úsala en cualquier elemento — wrappear con la clase basta.
+   ============================================================ */
+.sig-display {
+  font-family: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
+  font-weight: 600;
+  font-size: 3rem;
+  letter-spacing: var(--tracking-widest);
+  line-height: 1;
+  background: linear-gradient(180deg, #edd97a 0%, #c9a84c 55%, #9a7020 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.sig-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.sig-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.sig-tabular { font-variant-numeric: tabular-nums; }
