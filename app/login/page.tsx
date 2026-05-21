@@ -93,13 +93,13 @@ function LoginForm() {
       />
 
       {/* Nautical chart grid */}
-      <div
+{/* {      <div
         className="absolute inset-0 pointer-events-none"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40 H80 M40 0 V80' stroke='%23243d6e' stroke-width='0.5'/%3E%3C/svg%3E")`,
           opacity: 0.3,
         }}
-      />
+      />} */}
 
       {/* Parallel lines (latitude feel) */}
       <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.04 }}>
@@ -161,7 +161,7 @@ function LoginForm() {
           {/* Header */}
           <div className="flex flex-col items-center" style={{ marginBottom: 32 }}>
             <img
-              src="/escudo_liceo.ico"
+              src="/escudo_liceo.png"
               alt="Escudo IEAP"
               style={{
                 width: 68,

@@ -277,14 +277,17 @@ export default function DashboardPage() {
                   <Icon className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground tabular-nums leading-none">
+                  <p
+                    className="font-bold text-foreground tabular-nums leading-none"
+                    style={{ fontSize: 26 }}
+                  >
                     {statsLoading ? (
                       <span className="inline-block h-6 w-10 animate-pulse rounded bg-muted" />
                     ) : (
                       stat.value.toLocaleString("es-CO")
                     )}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
                 </div>
               </button>
             )
