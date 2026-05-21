@@ -3,15 +3,13 @@
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
 import { PersonaForm, type PersonaFormData } from "@/components/personas/persona-form"
-import type { CreatePersonaInput } from "@/lib/types"
-
 interface EstudianteFormProps {
   initialData?: {
-    persona: Partial<CreatePersonaInput>
+    persona?: Partial<PersonaFormData>
     estudiante?: { estado?: string; fecha_ingreso?: string }
   }
   onSubmit: (data: {
-    persona: CreatePersonaInput
+    persona: PersonaFormData
     estudiante: { estado?: string; fecha_ingreso?: string }
   }) => Promise<void>
   onCancel: () => void
@@ -26,19 +24,19 @@ export function EstudianteForm({
 }: EstudianteFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [personaData, setPersonaData] = useState<PersonaFormData>({
-    nombres: initialData?.persona?.persona?.nombres ?? "",
-    apellido_paterno: initialData?.persona?.persona?.apellido_paterno ?? "",
-    apellido_materno: initialData?.persona?.persona?.apellido_materno ?? "",
-    tipo_documento_id: initialData?.persona?.persona?.tipo_documento_id ?? 0,
-    numero_documento: initialData?.persona?.persona?.numero_documento ?? "",
-    fecha_nacimiento: initialData?.persona?.persona?.fecha_nacimiento ?? "",
-    genero: (initialData?.persona?.persona?.genero ?? "Masculino") as "Masculino" | "Femenino" | "Otro",
-    serial_registro_civil: initialData?.persona?.persona?.serial_registro_civil ?? "",
-     grupo_sanguineo: initialData?.persona?.persona?.grupo_sanguineo ?? "",
-     grupo_etnico: initialData?.persona?.persona?.grupo_etnico ?? "",
-     credo_religioso: initialData?.persona?.persona?.credo_religioso ?? "",
-     lugar_nacimiento: initialData?.persona?.persona?.lugar_nacimiento ?? "",
-     expedida_en: initialData?.persona?.persona?.expedida_en ?? "",
+    nombres:               initialData?.persona?.nombres               ?? "",
+    apellido_paterno:      initialData?.persona?.apellido_paterno      ?? "",
+    apellido_materno:      initialData?.persona?.apellido_materno      ?? "",
+    tipo_documento_id:     initialData?.persona?.tipo_documento_id     ?? 0,
+    numero_documento:      initialData?.persona?.numero_documento      ?? "",
+    fecha_nacimiento:      initialData?.persona?.fecha_nacimiento      ?? "",
+    genero:                initialData?.persona?.genero                ?? "Masculino",
+    serial_registro_civil: initialData?.persona?.serial_registro_civil ?? "",
+    grupo_sanguineo:       initialData?.persona?.grupo_sanguineo       ?? "",
+    grupo_etnico:          initialData?.persona?.grupo_etnico          ?? "",
+    credo_religioso:       initialData?.persona?.credo_religioso       ?? "",
+    lugar_nacimiento:      initialData?.persona?.lugar_nacimiento      ?? "",
+    expedida_en:           initialData?.persona?.expedida_en           ?? "",
   })
   const [estado, setEstado] = useState(
     initialData?.estudiante?.estado ?? "activo"
@@ -52,25 +50,8 @@ export function EstudianteForm({
     setIsSubmitting(true)
     try {
       await onSubmit({
-        persona: {
-          nombres: personaData.nombres,
-          apellido_paterno: personaData.apellido_paterno || undefined,
-          apellido_materno: personaData.apellido_materno || undefined,
-          tipo_documento_id: personaData.tipo_documento_id,
-          numero_documento: personaData.numero_documento,
-          fecha_nacimiento: personaData.fecha_nacimiento,
-          genero: personaData.genero,
-          serial_registro_civil: personaData.serial_registro_civil,
-          grupo_sanguineo: personaData.grupo_sanguineo,
-          grupo_etnico: personaData.grupo_etnico,
-          credo_religioso: personaData.credo_religioso,
-          lugar_nacimiento: personaData.lugar_nacimiento,
-          expedida_en: personaData.expedida_en,
-        },
-        estudiante: {
-          estado,
-          fecha_ingreso: fechaIngreso || undefined,
-        },
+        persona: personaData,
+        estudiante: { estado, fecha_ingreso: fechaIngreso || undefined },
       })
     } finally {
       setIsSubmitting(false)

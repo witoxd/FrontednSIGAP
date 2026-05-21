@@ -16,7 +16,7 @@ import { Loader2, CheckCircle2, ArrowLeft } from "lucide-react"
 import { PersonaForm, type PersonaFormData } from "@/components/personas/persona-form"
 import { ArchivoUploader } from "@/components/shared/archivos/archivo-uploader"
 import { estudiantesApi } from "@/lib/api/services/estudiantes"
-import type { CreateEstudianteInput } from "@/lib/types"
+import type { CreateEstudianteInput, Estudiante } from "@/lib/types"
 
 interface EstudianteFormConArchivosProps {
   onSuccess?: () => void
@@ -70,16 +70,16 @@ export function EstudianteFormConArchivos({
       const datosEstudiante: CreateEstudianteInput = {
         persona: {
           nombres: personaData.nombres,
-          apellido_paterno: personaData.apellido_paterno || undefined,
-          apellido_materno: personaData.apellido_materno || undefined,
+          apellido_paterno: personaData.apellido_paterno || "",
+          apellido_materno: personaData.apellido_materno || "",
           tipo_documento_id: personaData.tipo_documento_id,
           numero_documento: personaData.numero_documento,
           fecha_nacimiento: personaData.fecha_nacimiento,
           genero: personaData.genero,
         },
         estudiante: {
-          estado,
-          fecha_ingreso: fechaIngreso || undefined,
+          estado: estado as Estudiante["estado"],
+          fecha_ingreso: fechaIngreso || new Date().toISOString().split("T")[0],
         },
       }
 
@@ -89,7 +89,7 @@ export function EstudianteFormConArchivos({
 
       // Guardar el persona_id para el siguiente paso
       // Asumiendo que el backend devuelve el persona_id en la respuesta
-      const nuevoPersonaId = response.data?.persona_id
+      const nuevoPersonaId = (response.data as any)?.persona?.persona_id
       
       if (!nuevoPersonaId) {
         throw new Error("No se recibió el persona_id del servidor")
@@ -334,8 +334,7 @@ export function EstudianteFormConArchivos({
         {personaId && (
           <ArchivoUploader
             persona_id={personaId}
-            tiposRequeridos={tiposRequeridos}
-            maxFiles={10}
+            contexto="estudiante"
             maxFileSize={10}
             onSuccess={handleDocumentosSuccess}
             onError={handleDocumentosError}

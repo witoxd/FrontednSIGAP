@@ -75,13 +75,15 @@ export function EjemploEnModal() {
 
       {/* Modal con el uploader */}
       <Modal
-        isOpen={mostrarModal}
+        open={mostrarModal}
         onClose={() => setMostrarModal(false)}
         title={`Subir documentos - ${estudianteSeleccionado?.nombre}`}
       >
         {estudianteSeleccionado && (
           <ArchivoUploader
             persona_id={estudianteSeleccionado.persona_id}
+            contexto="estudiante"
+            maxFileSize={5}
             onSuccess={(archivos) => {
               alert(`¡Éxito! Se subieron ${archivos.length} archivos`)
               setMostrarModal(false)
@@ -89,8 +91,6 @@ export function EjemploEnModal() {
             onError={(error) => {
               alert(`Error: ${error}`)
             }}
-            maxFiles={10}
-            maxFileSize={5}
           />
         )}
       </Modal>
@@ -150,11 +150,9 @@ export function EjemploInscripcion() {
       {personaId && (
         <ArchivoUploader
           persona_id={personaId}
-          tiposRequeridos={[1, 5, 2]} // IDs de tipos requeridos
-          maxFiles={5}
-          onSuccess={(archivos) => {
+          contexto="estudiante"
+          onSuccess={() => {
             alert("¡Inscripción completada exitosamente!")
-            // Redirigir o mostrar confirmación
           }}
           onError={(error) => {
             alert(`Error: ${error}`)
@@ -249,8 +247,8 @@ export function EjemploProfesor({ profesorPersonaId }: { profesorPersonaId: numb
 
       <ArchivoUploader
         persona_id={profesorPersonaId}
-        maxFiles={15}
-        maxFileSize={15} // 15MB para documentos más grandes
+        contexto="profesor"
+        maxFileSize={15}
         onSuccess={(archivos) => {
           console.log("Documentos del profesor subidos:", archivos)
           alert("Documentos subidos correctamente")
