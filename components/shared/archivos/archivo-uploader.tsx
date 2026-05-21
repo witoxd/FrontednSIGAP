@@ -210,11 +210,6 @@ export function ArchivoUploader({
         formData.append("archivos", s.file!)
       })
 
-      const token = typeof window !== "undefined"
-        ? localStorage.getItem("sigap_token")
-        : null
-      if (!token) throw new Error("No se encontró el token de autenticación")
-
       const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api"
 
       await new Promise<void>((resolve, reject) => {
@@ -241,7 +236,7 @@ export function ArchivoUploader({
         xhr.addEventListener("error", () => reject(new Error("Error de red")))
 
         xhr.open("POST", `${API_BASE}/archivos/bulkCreate`)
-        xhr.setRequestHeader("Authorization", `Bearer ${token}`)
+        xhr.withCredentials = true // envía cookies httpOnly automáticamente
         xhr.send(formData)
       })
 
