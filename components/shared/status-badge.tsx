@@ -1,11 +1,14 @@
 const statusStyles: Record<string, string> = {
-  activo: "bg-success/10 text-success",
-  inactivo: "bg-muted text-muted-foreground",
-  graduado: "bg-accent text-accent-foreground",
+  activo:     "bg-success/10 text-success",
+  activa:     "bg-success/10 text-success",
+  inactivo:   "bg-muted text-muted-foreground",
+  inactiva:   "bg-muted text-muted-foreground",
+  graduado:   "bg-blue-100 text-blue-700",
+  egresado:   "bg-blue-100 text-blue-700",
   suspendido: "bg-warning/10 text-warning",
-  expulsado: "bg-destructive/10 text-destructive",
+  expulsado:  "bg-destructive/10 text-destructive",
   finalizada: "bg-accent text-accent-foreground",
-  retirada: "bg-destructive/10 text-destructive",
+  retirada:   "bg-destructive/10 text-destructive",
 }
 
 interface StatusBadgeProps {
