@@ -16,7 +16,6 @@ import {
   ContactRound,
   Building2,
   CalendarRange,
-  FileText,
   Clock,
   FolderArchive,
   IdCard,
@@ -63,12 +62,6 @@ const NAV_ITEMS: NavItem[] = [
     icon:        CalendarRange,
     roles:       ["admin"],
     groupLabel:  "Configuración",
-  },
-  {
-    href:  "/dashboard/configuracion/procesos",
-    label: "Inscripciones",
-    icon:  FileText,
-    roles: ["admin"],
   },
 ]
 
@@ -123,7 +116,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         ) : (
           <Link href="/dashboard" className="flex items-center gap-2">
             <img
-              src="/escudo_liceo.ico"
+              src="/escudo_liceo.png"
               alt="Logo IEAP"
               className="w-14 h-14 object-contain drop-shadow-lg brightness-100"
             />
