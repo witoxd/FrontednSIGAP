@@ -9,7 +9,6 @@ import {
   type ReactNode,
 } from "react"
 import { authApi } from "@/lib/api/services/auth"
-import { setToken, removeToken } from "@/lib/api/client"
 import type { AuthUser } from "@/lib/types"
 
 interface AuthContextValue {
@@ -17,7 +16,7 @@ interface AuthContextValue {
   isLoading: boolean
   isAuthenticated: boolean
   login: (email: string, contraseña: string) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
   hasRole: (role: string) => boolean
 }
 
@@ -29,14 +28,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadUser = useCallback(async () => {
     try {
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("sigap_token")
-          : null
-      if (!token) {
-        setIsLoading(false)
-        return
-      }
+      // Con cookies httpOnly, simplemente llamamos /auth/me — el navegador
+      // envía la cookie automáticamente. Si no hay sesión activa, recibiremos
+      // un 401 y el cliente intentará el refresh; si tampoco funciona, el
+      // fetch redirige al login.
       const res = await authApi.me()
       if (res.success && res.data) {
         setUser({
@@ -48,7 +43,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
       }
     } catch {
-      removeToken()
       setUser(null)
     } finally {
       setIsLoading(false)
@@ -59,36 +53,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadUser()
   }, [loadUser])
 
-  const login = useCallback(
-    async (email: string, contraseña: string) => {
-      const res = await authApi.login(email, contraseña)
-      if (res.success && res.data) {
-        setToken(res.data.token)
-        setUser({
-          id: res.data.user.id,
-          personaId: res.data.user.personaId,
-          username: res.data.user.username,
-          email: res.data.user.email,
-          roles: res.data.user.roles,
-        })
-      } else {
-        throw new Error(res.message || "Error al iniciar sesion")
-      }
-    },
-    []
-  )
+  const login = useCallback(async (email: string, contraseña: string) => {
+    const res = await authApi.login(email, contraseña)
+    if (res.success && res.data) {
+      setUser({
+        id: res.data.user.id,
+        personaId: res.data.user.personaId,
+        username: res.data.user.username,
+        email: res.data.user.email,
+        roles: res.data.user.roles,
+      })
+    } else {
+      throw new Error(res.message || "Error al iniciar sesión")
+    }
+  }, [])
 
-  const logout = useCallback(() => {
-    removeToken()
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout()
+    } catch {
+      // Continuar aunque falle la llamada al servidor
+    }
     setUser(null)
     window.location.href = "/login"
   }, [])
 
   const hasRole = useCallback(
-    (role: string) => {
-      return user?.roles.includes(role) ?? false
-    },
-    [user]
+    (role: string) => user?.roles.includes(role) ?? false,
+    [user],
   )
 
   return (

@@ -28,11 +28,6 @@ export interface UpdateArchivoInput {
 
 // ── Helpers internos ──────────────────────────────────────────────────────────
 
-function getToken(): string | null {
-  if (typeof window === "undefined") return null
-  return localStorage.getItem("sigap_token")
-}
-
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api"
 
 /**
@@ -41,9 +36,8 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api"
  * método parsea JSON y un Blob/stream no es JSON.
  */
 async function fetchBlob(endpoint: string): Promise<Blob> {
-  const token = getToken()
   const res   = await fetch(`${API_BASE}${endpoint}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: "include",
   })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
@@ -89,9 +83,6 @@ async function update(
   archivoId: number,
   input: UpdateArchivoInput
 ): Promise<ApiResponse<Archivo>> {
-  const token = getToken()
-  if (!token) throw new Error("No se encontró el token de autenticación")
-
   // Si hay archivo físico nuevo → multipart
   if (input.archivo) {
     const formData = new FormData()
@@ -101,9 +92,9 @@ async function update(
     if (input.tipo_archivo_id) formData.append("tipo_archivo_id", String(input.tipo_archivo_id))
 
     const res = await fetch(`${API_BASE}/archivos/update/${archivoId}`, {
-      method:  "PUT",
-      headers: { Authorization: `Bearer ${token}` },
-      body:    formData,
+      method:      "PUT",
+      credentials: "include",
+      body:        formData,
     })
     const body = await res.json()
     if (!res.ok) throw new Error(body.message ?? `Error ${res.status}`)

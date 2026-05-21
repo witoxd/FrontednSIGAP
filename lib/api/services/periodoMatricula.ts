@@ -1,36 +1,22 @@
-import { api } from "../client"
-import type { ApiResponse, PaginatedApiResponse } from "@/lib/types"
+import { api, validateWith } from "../client"
+import type { ApiResponse } from "@/lib/types"
+import {
+  ApiResponseSchema,
+  PeriodoMatriculaSchema,
+  PeriodoActivoResponseSchema,
+  VigenciaResponseSchema,
+} from "@/lib/schemas"
+import { z } from "zod"
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-export interface PeriodoMatricula {
-  periodo_id:   number
-  anio:         number
-  fecha_inicio: string
-  fecha_fin:    string
-  activo:       boolean
-  descripcion?: string
-  created_by?:  number
-  created_at?:  string
-}
-
-export interface PeriodoActivoResponse {
-  success: boolean
-  data:    PeriodoMatricula | null
-  abierto: boolean
-}
-
-export interface VigenciaResponse {
-  success:        boolean
-  abierto:        boolean
-  dias_restantes?: number
-  mensaje:        string
-  periodo?:       PeriodoMatricula
-}
+export type PeriodoMatricula = z.infer<typeof PeriodoMatriculaSchema>
+export type PeriodoActivoResponse = z.infer<typeof PeriodoActivoResponseSchema>
+export type VigenciaResponse = z.infer<typeof VigenciaResponseSchema>
 
 export interface CreatePeriodoInput {
   periodo: {
-    anio:        number
+    anio:         number
     fecha_inicio: string
     fecha_fin:    string
     descripcion?: string
@@ -45,32 +31,52 @@ export interface UpdatePeriodoInput {
 
 export const periodoMatriculaApi = {
   getAll: () =>
-    api.get<{ success: boolean; data: PeriodoMatricula[] }>("/periodos-matricula/getAll"),
+    validateWith(
+      z.object({ success: z.boolean(), data: PeriodoMatriculaSchema.array() }),
+      api.get("/periodos-matricula/getAll")
+    ),
 
   getById: (id: number) =>
-    api.get<ApiResponse<PeriodoMatricula>>(`/periodos-matricula/getById/${id}`),
+    validateWith(
+      ApiResponseSchema(PeriodoMatriculaSchema),
+      api.get(`/periodos-matricula/getById/${id}`)
+    ),
 
-  /**
-   * Devuelve el período activo. El campo `abierto` es el que el frontend
-   * usa para decidir si habilitar el proceso — no leer solo `data`.
-   */
   getActivo: () =>
-    api.get<PeriodoActivoResponse>("/periodos-matricula/activo"),
+    validateWith(
+      PeriodoActivoResponseSchema,
+      api.get("/periodos-matricula/activo")
+    ),
 
   verificarVigencia: () =>
-    api.get<VigenciaResponse>("/periodos-matricula/vigencia"),
+    validateWith(
+      VigenciaResponseSchema,
+      api.get("/periodos-matricula/vigencia")
+    ),
 
   create: (data: CreatePeriodoInput) =>
-    api.post<ApiResponse<PeriodoMatricula>>("/periodos-matricula/create", data),
+    validateWith(
+      ApiResponseSchema(PeriodoMatriculaSchema),
+      api.post("/periodos-matricula/create", data)
+    ),
 
   update: (id: number, data: UpdatePeriodoInput) =>
-    api.put<ApiResponse<PeriodoMatricula>>(`/periodos-matricula/update/${id}`, data),
+    validateWith(
+      ApiResponseSchema(PeriodoMatriculaSchema),
+      api.put(`/periodos-matricula/update/${id}`, data)
+    ),
 
   activar: (id: number) =>
-    api.patch<ApiResponse<PeriodoMatricula>>(`/periodos-matricula/activar/${id}`),
+    validateWith(
+      ApiResponseSchema(PeriodoMatriculaSchema),
+      api.patch(`/periodos-matricula/activar/${id}`)
+    ),
 
   desactivar: (id: number) =>
-    api.patch<ApiResponse<PeriodoMatricula>>(`/periodos-matricula/desactivar/${id}`),
+    validateWith(
+      ApiResponseSchema(PeriodoMatriculaSchema),
+      api.patch(`/periodos-matricula/desactivar/${id}`)
+    ),
 
   delete: (id: number) =>
     api.delete<ApiResponse>(`/periodos-matricula/delete/${id}`),

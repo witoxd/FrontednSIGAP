@@ -1,21 +1,28 @@
-import { api } from "../client"
-import type {
-  ApiResponse,
-  PaginatedApiResponse,
-  CreateTipoArchivoInput,
-  TipoArchivo,
-  UpdateTipoArchivoInput
-} from "@/lib/types"
+import { api, validateWith } from "../client"
+import type { ApiResponse, CreateTipoArchivoInput, UpdateTipoArchivoInput } from "@/lib/types"
+import {
+  ApiResponseSchema,
+  TipoArchivoSchema,
+} from "@/lib/schemas"
 
 export const tiposArchivosApi = {
   getAll: () =>
-    api.get<PaginatedApiResponse<TipoArchivo>>("/tipos-archivos/getAll"),
+    validateWith(
+      ApiResponseSchema(TipoArchivoSchema.array()),
+      api.get("/tipos-archivos/getAll")
+    ),
 
   getByRol: (rol: string) =>
-    api.get<PaginatedApiResponse<TipoArchivo>>(`/tipos-archivos/getByRol/${rol}`),
+    validateWith(
+      ApiResponseSchema(TipoArchivoSchema.array()),
+      api.get(`/tipos-archivos/getByRol/${rol}`)
+    ),
 
   getById: (id: number) =>
-    api.get<ApiResponse<TipoArchivo>>(`/tipos-archivos/getById/${id}`),
+    validateWith(
+      ApiResponseSchema(TipoArchivoSchema),
+      api.get(`/tipos-archivos/getById/${id}`)
+    ),
 
   create: (data: CreateTipoArchivoInput) =>
     api.post<ApiResponse>("/tipos-archivos/create", data),

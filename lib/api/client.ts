@@ -1,31 +1,80 @@
+import { z } from "zod"
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
 
-function getToken(): string | null {
-  if (typeof window === "undefined") return null
-  return localStorage.getItem("sigap_token")
-}
+// El token ya no se maneja en el cliente — el navegador envía la cookie
+// httpOnly automáticamente. Estas funciones se mantienen vacías para no
+// romper imports existentes durante la migración.
+export function setToken(_token: string) {}
+export function removeToken() {}
 
-export function setToken(token: string) {
-  localStorage.setItem("sigap_token", token)
-}
-
-export function removeToken() {
-  localStorage.removeItem("sigap_token")
+/**
+ * Valida los datos recibidos contra un schema Zod.
+ * Lanza un error claro si la estructura no coincide.
+ * Útil para envolver llamadas a `api.*` en los servicios.
+ *
+ * @example
+ *   const data = await validateWith(CursoSchema, cursosApi.getById(id))
+ */
+export async function validateWith<T>(
+  schema: z.ZodSchema<T>,
+  promise: Promise<unknown>
+): Promise<T> {
+  const raw = await promise
+  // Algunos endpoints devuelven JSON doblemente serializado (string en vez de objeto)
+  const parsed = typeof raw === "string" ? (() => { try { return JSON.parse(raw) } catch { return raw } })() : raw
+  const result = schema.safeParse(parsed)
+  if (!result.success) {
+    console.error("[Zod] Issues:", JSON.stringify(result.error.issues, null, 2))
+    console.error("[Zod] Datos recibidos:", JSON.stringify(parsed, null, 2))
+    throw new Error("La respuesta del servidor no tiene el formato esperado")
+  }
+  return result.data
 }
 
 interface FetchOptions extends RequestInit {
   params?: Record<string, string | number>
 }
 
-async function handleResponse<T>(response: Response): Promise<T> {
+let isRefreshing = false
+let refreshPromise: Promise<boolean> | null = null
+
+async function tryRefresh(): Promise<boolean> {
+  if (isRefreshing && refreshPromise) return refreshPromise
+
+  isRefreshing = true
+  refreshPromise = fetch(`${API_BASE_URL}/auth/refresh`, {
+    method: "POST",
+    credentials: "include",
+  }).then((r) => {
+    isRefreshing = false
+    refreshPromise = null
+    return r.ok
+  }).catch(() => {
+    isRefreshing = false
+    refreshPromise = null
+    return false
+  })
+
+  return refreshPromise
+}
+
+async function handleResponse<T>(
+  response: Response,
+  retry: () => Promise<T>,
+  skipRefresh = false,
+): Promise<T> {
   if (response.status === 401) {
-    removeToken()
-    if (typeof window !== "undefined") {
+    if (!skipRefresh) {
+      const refreshed = await tryRefresh()
+      if (refreshed) return retry()
+    }
+    // Solo redirigir si no estamos ya en /login para evitar bucle infinito
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
       window.location.href = "/login"
     }
-    throw new Error("Sesion expirada")
+    throw new Error("Sesión expirada")
   }
 
   const data = await response.json()
@@ -53,19 +102,23 @@ export async function apiClient<T>(
     url += `?${searchParams.toString()}`
   }
 
-  const token = getToken()
   const headers: HeadersInit = {
     "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...customHeaders,
   }
 
-  const response = await fetch(url, {
-    headers,
-    ...rest,
-  })
+  const doFetch = () =>
+    fetch(url, {
+      headers,
+      credentials: "include", // envía las cookies httpOnly automáticamente
+      ...rest,
+    })
 
-  return handleResponse<T>(response)
+  const response = await doFetch()
+
+  return handleResponse<T>(response, () =>
+    doFetch().then((r) => handleResponse<T>(r, () => { throw new Error("Sesión expirada") }, true))
+  )
 }
 
 // Shortcuts

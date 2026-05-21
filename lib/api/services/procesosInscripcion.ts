@@ -1,29 +1,16 @@
-import { api } from "../client"
+import { z } from "zod"
+import { api, validateWith } from "../client"
+import { ProcesoInscripcionSchema, ProcesoVigenteResponseSchema } from "@/lib/schemas/proceso"
 import type { ApiResponse } from "@/lib/types"
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-export interface ProcesoInscripcion {
-  proceso_id:               number
-  periodo_id:               number
-  nombre:                   string   // "Ordinaria", "Extraordinaria", "Especial"
-  fecha_inicio_inscripcion: string
-  fecha_fin_inscripcion:    string
-  activo:                   boolean
-  created_at?:              string
-  // Campos extra que devuelve el getAll (JOIN con periodos_matricula)
-  anio?:                    number
-  periodo_descripcion?:     string
-}
+export type ProcesoInscripcion = z.infer<typeof ProcesoInscripcionSchema>
 
-/**
- * Respuesta de /procesos-inscripcion/vigente
- * `abierto` indica si hoy cae dentro de la ventana de algún proceso.
- */
 export interface ProcesoVigenteResponse {
   success: boolean
   data:    ProcesoInscripcion | null
-  abierto: boolean | false
+  abierto: boolean
 }
 
 export interface CreateProcesoInput {
@@ -40,27 +27,25 @@ export interface UpdateProcesoInput {
   proceso: Partial<CreateProcesoInput["proceso"]>
 }
 
+const ListaSchema = z.object({ success: z.boolean(), data: z.array(ProcesoInscripcionSchema) })
+
 // ── Service ───────────────────────────────────────────────────────────────────
 
 export const procesosInscripcionApi = {
   getAll: () =>
-    api.get<{ success: boolean; data: ProcesoInscripcion[] }>("/procesos-inscripcion/getAll"),
+    validateWith(ListaSchema, api.get("/procesos-inscripcion/getAll")),
 
   getById: (id: number) =>
-    api.get<ApiResponse<ProcesoInscripcion>>(`/procesos-inscripcion/getById/${id}`),
-
-  getByPeriodo: (periodoId: number) =>
-    api.get<{ success: boolean; data: ProcesoInscripcion[] }>(
-      `/procesos-inscripcion/getByPeriodo/${periodoId}`
+    validateWith(
+      z.object({ success: z.boolean(), data: ProcesoInscripcionSchema }),
+      api.get(`/procesos-inscripcion/getById/${id}`)
     ),
 
-  /**
-   * Devuelve el proceso cuya ventana de fechas incluye hoy, dentro del
-   * período activo. Es el equivalente a "¿se puede matricular ahora?".
-   * El campo `abierto` es la fuente de verdad para habilitar la UI.
-   */
+  getByPeriodo: (periodoId: number) =>
+    validateWith(ListaSchema, api.get(`/procesos-inscripcion/getByPeriodo/${periodoId}`)),
+
   getVigente: () =>
-    api.get<ProcesoVigenteResponse>("/procesos-inscripcion/vigente"),
+    validateWith(ProcesoVigenteResponseSchema, api.get("/procesos-inscripcion/vigente")),
 
   create: (data: CreateProcesoInput) =>
     api.post<ApiResponse<ProcesoInscripcion>>("/procesos-inscripcion/create", data),

@@ -21,7 +21,6 @@ export interface PaginatedApiResponse<T> {
 }
 
 export interface LoginResponse {
-  token: string
   user: {
     id: number
     personaId: number
@@ -38,7 +37,7 @@ export interface LoginResponse {
 export interface TipoDocumento {
   tipo_documento_id: number
   tipo_documento: string
-  nombre_documento: string
+  nombre_documento?: string | null
 }
 
 // ============================================================================
@@ -68,17 +67,17 @@ export interface PersonaWithTipoDocumento {
   persona_id: number
   nombres: string
   apellido_paterno: string
-  apellido_materno: string
+  apellido_materno?: string
   tipo_documento: TipoDocumento
   numero_documento: string
   fecha_nacimiento: string
   genero: "Masculino" | "Femenino" | "Otro"
-  grupo_sanguineo: string
-  grupo_etnico: string
-  credo_religioso: string
-  lugar_nacimiento: string
-  serial_registro_civil: string
-  expedida_en: string
+  grupo_sanguineo?: string
+  grupo_etnico?: string
+  credo_religioso?: string
+  lugar_nacimiento?: string
+  serial_registro_civil?: string
+  expedida_en?: string
 }
 
 export interface CreatePersonaInput {
@@ -206,13 +205,11 @@ export interface AssignToEstudianteDTO {
  * en la tabla de asignaciones y en el modal de búsqueda.
  */
 export interface EstudianteResumen {
-  /** persona_id del estudiante (es también su PK en la tabla estudiantes) */
   persona_id: number
   nombres: string
   apellido_paterno?: string
   apellido_materno?: string
   numero_documento: string
-  /** ID real de la fila en tabla estudiantes */
   estudiante_id: number
 }
 
@@ -228,6 +225,46 @@ export interface AcudienteWithPerosnaDocumento {
   acudiente: Acudiente
 }
 
+/**
+ * Acudiente vinculado a un estudiante específico.
+ * Devuelto por GET /acudientes/:estudianteId/estudiantes
+ * Shape reducido: solo los campos que muestra SeccionAcudientes.
+ */
+export interface AcudienteDeEstudiante {
+  persona: {
+    persona_id:        number
+    nombres:           string
+    apellido_paterno:  string
+    apellido_materno?: string | null
+    numero_documento:  string
+    tipo_documento?: {
+      tipo_documento_id: number
+      tipo_documento?:   string | null
+      nombre_documento?: string | null
+    } | null
+  }
+  acudiente:     Acudiente
+  tipo_relacion: string | null
+  es_principal:  boolean
+}
+
+export interface AcudienteDetalles {
+  persona: PersonaWithTipoDocumento
+  acudiente: Acudiente
+  estudiantes: Array<{
+    estudiante: {
+      estudiante_id: number
+      nombres: string
+      apellido_paterno: string
+      apellido_materno: string | null
+      numero_documento: string
+    }
+    relacion: {
+      tipo_relacion: string | null
+      es_principal: boolean
+    }
+  }>
+}
 
 
 
@@ -239,7 +276,20 @@ export interface Estudiante {
   estudiante_id?: number
   persona_id?: number
   estado: "activo" | "inactivo" | "graduado" | "suspendido" | "expulsado"
+  estado_efectivo?: "activo" | "inactivo" | "egresado" | "suspendido" | "expulsado"
   fecha_ingreso: string
+}
+
+export interface Suspension {
+  suspension_id: number
+  estudiante_id: number
+  matricula_id?: number | null
+  motivo: string
+  fecha_inicio: string
+  fecha_fin: string
+  created_at?: string | null
+  creado_por_nombre?: string | null
+  vigente?: boolean
 }
 
 export interface CreateEstudianteInput {
@@ -267,23 +317,76 @@ export interface ColegioAnteriorAttributes {
 }
 
 // ============================================================================
+// Docente Models (campos compartidos de contratación)
+// ============================================================================
+
+export interface Docente {
+  docente_id: number
+  persona_id?: number
+  cargo?: string | null
+  sede?: string | null
+  jornada_id?: number | null
+  jornada_nombre?: string | null
+  tipo_contrato?: string | null
+  estado: "activo" | "inactivo"
+  fecha_contratacion: string
+}
+
+// ============================================================================
 // Profesor Models
 // ============================================================================
 
 export interface Profesor {
-  profesor_id?: number
-  persona_id?: number
-  fecha_contratacion: string
-  estado: "activo" | "inactivo"
+  profesor_id: number
+  docente_id: number
+  fecha_nombramiento?: string | null
+  numero_resolucion?: string | null
+  area?: string | null
+  grado_escalafon?: string | null
+  titulo?: string | null
+  posgrado?: string | null
+  perfil_profesional?: string | null
+}
+
+export interface ProfesorContactoEmergencia {
+  contacto_emergencia_id: number
+  profesor_id: number
+  nombre: string
+  parentesco: string
+  telefono: string
+  celular?: string | null
+  activo: boolean
+}
+
+export interface ProfesorDetalles {
+  persona: PersonaWithTipoDocumento
+  docente: Docente
+  profesor: Profesor
+  contactos_emergencia: Omit<ProfesorContactoEmergencia, "profesor_id" | "activo">[]
 }
 
 export interface CreateProfesorInput {
   persona: Persona
-  profesor: Profesor
+  profesor: {
+    cargo?: string
+    sede?: string
+    jornada_id?: number
+    tipo_contrato?: string
+    estado?: "activo" | "inactivo"
+    fecha_contratacion?: string
+    fecha_nombramiento?: string
+    numero_resolucion?: string
+    grado_escalafon?: string
+    area?: string
+    titulo?: string
+    posgrado?: string
+    perfil_profesional?: string
+  }
 }
 
 export interface ProfesorWitchPersonaDocumento {
   persona: PersonaWithTipoDocumento
+  docente: Docente
   profesor: Profesor
 }
 
@@ -293,19 +396,24 @@ export interface ProfesorWitchPersonaDocumento {
 
 export interface Administrativo {
   administrativo_id: number
-  persona_id: number
-  cargo: string
-  fecha_contratacion: string
-  estado: boolean
+  docente_id: number
 }
 
 export interface CreateAdministrativoInput {
   persona: Persona
-  administrativo: Administrativo
+  administrativo: {
+    cargo?: string
+    sede?: string
+    jornada_id?: number
+    tipo_contrato?: string
+    estado?: "activo" | "inactivo"
+    fecha_contratacion?: string
+  }
 }
 
 export interface AdministrativoWithPersonaDocumento {
   persona: PersonaWithTipoDocumento
+  docente: Docente
   administrativo: Administrativo
 }
 
@@ -313,18 +421,50 @@ export interface AdministrativoWithPersonaDocumento {
 // Curso Models
 // ============================================================================
 
+export type NivelEducativo = "Preescolar" | "Primaria" | "Secundaria" | "Media"
+
 export interface Curso {
-  curso_id: number
-  nombre: string
-  grado: string
-  descripcion?: string
+  curso_id:         number
+  grado:            string
+  nivel:            NivelEducativo
+  grupo:            string
+  jornada_id:       number
+  jornada_nombre?:  string
+  capacidad_maxima: number
+  activo:           boolean
+}
+
+export interface CursoDetalles extends Curso {
+  directores: {
+    director_id:         number
+    periodo_id:          number
+    anio:                number
+    periodo_descripcion: string
+    periodo_activo:      boolean
+    profesor_id:         number
+    nombres:             string
+    apellido_paterno:    string
+    apellido_materno:    string
+  }[]
+  asignaciones: {
+    asignacion_id:       number
+    periodo_id:          number
+    materia:             string
+    horas_semanales:     number | null
+    profesor_id:         number
+    nombres:             string
+    apellido_paterno:    string
+    apellido_materno:    string
+  }[]
 }
 
 export interface CreateCursoInput {
   curso: {
-    nombre: string
-    grado: string
-    descripcion?: string
+    grado:            string
+    nivel:            NivelEducativo
+    grupo:            string
+    jornada_id:       number
+    capacidad_maxima?: number
   }
 }
 
@@ -332,14 +472,105 @@ export interface CreateCursoInput {
 // Matricula Models
 // ============================================================================
 export interface Matricula {
-  matricula_id: number
-  estudiante_id: number
-  profesor_id: number
-  curso_id: number
+  matricula_id:   number
+  estudiante_id:  number
+  curso_id:       number
+  periodo_id:     number
   fecha_matricula: string
-  jornada_id: number
-  estado_actual: "activo" | "finalizada" | "retirada"
-  anio: number
+  estado_actual:  "activa" | "finalizada" | "retirada" | "inactiva"
+  anio:           number
+  jornada_id?:    number
+}
+
+/** Snapshot de un cambio en una matrícula — devuelto por findHistorialByMatricula */
+export interface MatriculaHistorialItem {
+  historial_id:              number
+  curso_anterior_nombre?:    string | null
+  curso_nuevo_nombre?:       string | null
+  jornada_anterior_nombre?:  string | null
+  jornada_nuevo_nombre?:     string | null
+  estado_anterior:           string
+  estado_nuevo:              string
+  modificado_en:             string
+  motivo_cambio?:            string | null
+  modificado_por_nombre?:    string | null
+}
+
+/** Shape completo que devuelve GET /matriculas/getDetalles/:id */
+export interface MatriculaDetalles {
+  estado_actual:   "activa" | "finalizada" | "retirada" | "inactiva"
+  fecha_matricula: string
+  fecha_retiro?:   string | null
+  motivo_retiro?:  string | null
+  anio:            number
+  curso_id?:       number
+  jornada_id?:     number
+  curso: {
+    nombre:       string
+    grado:        string
+    descripcion?: string | null
+  }
+  jornada: {
+    nombre:       string
+    hora_inicio?: string | null
+    hora_fin?:    string | null
+  }
+  periodo: {
+    descripcion?:  string | null
+    fecha_inicio?: string | null
+    fecha_fin?:    string | null
+  }
+  estudiante: {
+    nombres:           string
+    apellido_paterno:  string
+    apellido_materno?: string | null
+    numero_documento:  string
+    nombre_documento?: string | null
+  }
+  archivos: Array<{
+    nombre:       string
+    url_archivo:  string
+    descripcion?: string | null
+    fecha_carga:  string
+    tipo_archivo: { nombre: string }
+  }>
+  archivos_requeridos: Array<{
+    nombre:       string
+    descripcion?: string | null
+    entregado:    boolean
+    url_archivo?: string | null
+    fecha_carga?: string | null
+  }>
+  historial: MatriculaHistorialItem[]
+  sanciones: SancionMatricula[]
+}
+
+export interface SancionMatricula {
+  suspension_id: number
+  motivo: string
+  fecha_inicio: string
+  fecha_fin: string
+  tipo: "suspension"
+  registrado_por?: string | null
+  vigente: boolean
+}
+
+/** Matrícula con todo lo que necesita el componente SeccionMatriculas */
+export interface MatriculaDeEstudiante {
+  matricula_id:        number
+  estado_actual:       "activa" | "finalizada" | "retirada" | "inactiva"
+  fecha_matricula:     string
+  fecha_retiro?:        string | null
+  motivo_retiro?:       string | null
+  anio:                 number
+  curso_nombre:         string
+  curso_grupo?:         string | null
+  grado?:               string | null
+  jornada_nombre:       string
+  periodo_descripcion?: string | null
+  periodo_fecha_inicio?: string | null
+  periodo_fecha_fin?:    string | null
+  historial:           MatriculaHistorialItem[]
 }
 
 export interface PREVIEWMatricula {
@@ -351,11 +582,10 @@ export interface PREVIEWMatricula {
   curso_nombre: string
   grado: string
   jornada_nombre: string
-  estado_actual: "activo" | "finalizada" | "retirada"
+  estado_actual: "activa" | "finalizada" | "retirada" | "inactiva"
   anio: number
   periodo_descripcion: string
 }
-
 
 export interface MatriculaConRelaciones extends Matricula {
   estudiante_nombre?: string
@@ -370,7 +600,7 @@ export interface CreateMatriculaInput {
     profesor_id: number
     curso_id: number
     jornada_id: number
-    estado: "activo" | "finalizada" | "retirada"
+    estado: "activa" | "finalizada" | "retirada"
     anio_egreso?: number
     fecha_matricula?: string
   }
@@ -639,7 +869,7 @@ export interface ContactoCreationAttributes {
  * Todos los campos son opcionales — solo se envían los que cambian.
  */
 export interface UpdateContactoDTO {
-  contacto: Partial<ContactoCreationAttributes>
+  contacto: Partial<ContactoCreationAttributes["contacto"]>
 }
 
 /**
@@ -675,4 +905,75 @@ export enum ROLES {
   ESTUDIANTE = "estudiante",
   ADMINISTRATIVO = "administrativo",
   MATRICULA = "matricula"
+}
+
+
+// ============================================================================
+// AsignacionDocente Models
+// ============================================================================
+
+export interface AsignacionDocente {
+  asignacion_id:       number
+  curso_id:            number
+  profesor_id:         number
+  periodo_id:          number
+  materia:             string
+  horas_semanales:     number | null
+  // campos joined (devueltos por findByProfesor)
+  grado?:              string
+  nivel?:              string
+  grupo?:              string
+  anio?:               number
+  periodo_descripcion?: string
+}
+
+export interface CreateAsignacionDocenteInput {
+  curso_id:        number
+  profesor_id:     number
+  periodo_id:      number
+  materia:         string
+  horas_semanales?: number | null
+}
+
+// ============================================================================
+// DirectorGrupo Models
+// ============================================================================
+
+export interface DirectorGrupoProfesor {
+  director_id:          number
+  curso_id:             number
+  periodo_id:           number
+  profesor_id:          number
+  grado:                string
+  nivel:                string
+  grupo:                string
+  anio:                 number
+  periodo_descripcion:  string
+  periodo_activo:       boolean
+}
+
+export interface CreateDirectorGrupoInput {
+  curso_id:   number
+  periodo_id: number
+  profesor_id: number
+}
+
+// ============================================================================
+// Reemplazo Profesor
+// ============================================================================
+
+export interface ReemplazoProfesor {
+  reemplazo_id:             number
+  profesor_id:              number
+  reemplaza_a_profesor_id:  number
+  fecha_inicio:             string
+  fecha_fin?:               string | null
+  motivo?:                  string | null
+  nombre_reemplazado?:      string
+  nombre_reemplazante?:     string
+}
+
+export interface ReemplazosProfesorResponse {
+  realizados: ReemplazoProfesor[]
+  recibidos:  ReemplazoProfesor[]
 }

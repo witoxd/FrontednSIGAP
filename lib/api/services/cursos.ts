@@ -1,17 +1,33 @@
-import { api } from "../client"
-import type {
-  ApiResponse,
-  PaginatedApiResponse,
-  Curso,
-  CreateCursoInput,
-} from "@/lib/types"
+import { api, validateWith } from "../client"
+import type { ApiResponse, Curso, CreateCursoInput } from "@/lib/types"
+import {
+  ApiResponseSchema,
+  PaginatedApiResponseSchema,
+  CursoSchema,
+  CursoDetallesSchema,
+} from "@/lib/schemas"
 
 export const cursosApi = {
-  getAll: (limit = 50, offset = 0) =>
-    api.get<PaginatedApiResponse<Curso>>("/cursos/getAll", { limit, offset }),
+  getAll: (limit = 50, offset = 0, soloActivos = false) => {
+    const params: Record<string, string | number> = { limit, offset }
+    if (soloActivos) params.activos = "true"
+    return validateWith(
+      PaginatedApiResponseSchema(CursoSchema),
+      api.get("/cursos/getAll", params)
+    )
+  },
 
   getById: (id: number) =>
-    api.get<ApiResponse<Curso>>(`/cursos/getById/${id}`),
+    validateWith(
+      ApiResponseSchema(CursoSchema),
+      api.get(`/cursos/getById/${id}`)
+    ),
+
+  getDetalles: (id: number) =>
+    validateWith(
+      ApiResponseSchema(CursoDetallesSchema),
+      api.get(`/cursos/getDetalles/${id}`)
+    ),
 
   create: (data: CreateCursoInput) =>
     api.post<ApiResponse>("/cursos/create", data),
@@ -19,5 +35,6 @@ export const cursosApi = {
   update: (id: number, data: { curso: Partial<Curso> }) =>
     api.put<ApiResponse>(`/cursos/update/${id}`, data),
 
-  delete: (id: number) => api.delete<ApiResponse>(`/cursos/delete/${id}`),
+  delete: (id: number) =>
+    api.delete<ApiResponse>(`/cursos/delete/${id}`),
 }
