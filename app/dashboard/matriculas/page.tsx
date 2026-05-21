@@ -74,14 +74,14 @@ export default function MatriculasPage() {
       header: "Estudiante",
       render: (m) => (
         <span className="font-medium text-foreground">
-          {m.estudiante_nombre || `Est. #${m.estudiante_id}`}
+          {m.estudiante_nombre || "Sin nombre registrado"}
         </span>
       ),
     },
     {
       key: "curso_nombre",
       header: "Curso",
-      render: (m) => m.curso_nombre || `Curso #${m.curso_id}`,
+      render: (m) => m.curso_nombre || "Sin curso asignado",
     },
     {
       key: "jornada_nombre",

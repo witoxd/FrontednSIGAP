@@ -1,15 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import { toast } from "sonner"
-import { Plus, Pencil, Trash2, Search, X, Loader2, ViewIcon } from "lucide-react"
+import { Plus, Search, X, Loader2, ViewIcon, Pencil } from "lucide-react"
 import { swrFetcher } from "@/lib/api/fetcher"
 import { estudiantesApi } from "@/lib/api/services/estudiantes"
 import { DataTable, type Column } from "@/components/shared/data-table"
 import { StatusBadge } from "@/components/shared/status-badge"
 import type { PaginatedApiResponse, EstudianteWithPersonaDocumento } from "@/lib/types"
+
+const DEBOUNCE_MS = 400
+const MIN_CHARS   = 2
 
 export default function EstudiantesPage() {
   const router = useRouter()
@@ -17,6 +20,7 @@ export default function EstudiantesPage() {
   const [search, setSearch] = useState("")
   const [isSearching, setIsSearching] = useState(false)
   const [searchResults, setSearchResults] = useState<EstudianteWithPersonaDocumento[] | null>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const limit = 20
 
   const { data, isLoading, mutate } = useSWR<PaginatedApiResponse<EstudianteWithPersonaDocumento>>(
@@ -26,18 +30,13 @@ export default function EstudiantesPage() {
 
   const columns: Column<EstudianteWithPersonaDocumento>[] = [
     {
-      key: "estudiante_id",
-      header: "IDs",
-      render: (est) => est.estudiante.estudiante_id
-    },
-    {
       key: "nombres",
       header: "Nombre completo",
       render: (est) => {
         const name = est.persona.nombres ?? ""
         const ap = est.persona.apellido_paterno ?? ""
         const am = est.persona.apellido_materno ?? ""
-        return `${name} ${ap} ${am}`.trim() || `Estudiante #${est.estudiante.estudiante_id}`
+        return `${name} ${ap} ${am}`.trim() || "Sin nombre registrado"
       },
     },
     {
@@ -60,51 +59,42 @@ export default function EstudiantesPage() {
     },
   ]
 
-  // Búsqueda global en el backend
-  useEffect(() => {
-    // Debounce: esperar 500ms después de que el usuario deje de escribir
-    const timeoutId = setTimeout(async () => {
-      if (search.trim().length < 3) {
-        setSearchResults(null)
-        return
-      }
+  const buscar = useCallback(async (texto: string) => {
+    const q = texto.trim()
+    if (q.length < MIN_CHARS) {
+      setSearchResults(null)
+      return
+    }
+    setIsSearching(true)
+    try {
+      const res = await estudiantesApi.searchIndex(q)
+      const lista = Array.isArray(res.data) ? res.data : res.data ? [res.data] : []
+      setSearchResults(lista)
+    } catch {
+      toast.error("Error al buscar estudiantes")
+      setSearchResults([])
+    } finally {
+      setIsSearching(false)
+    }
+  }, [])
 
-      setIsSearching(true)
-      try {
-        // Usar el endpoint de búsqueda de personas
-        const response = await estudiantesApi.searchIndex(search.trim())
+  function handleSearchChange(valor: string) {
+    setSearch(valor)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (valor.trim().length < MIN_CHARS) {
+      setSearchResults(null)
+      return
+    }
+    debounceRef.current = setTimeout(() => buscar(valor), DEBOUNCE_MS)
+  }
 
-        if (response.success && response.data) {
-          // Obtener los IDs de personas encontradas
-          const personaIds = response.data.map((p) => p.persona.persona_id)
+  useEffect(
+    () => () => { if (debounceRef.current) clearTimeout(debounceRef.current) },
+    []
+  )
 
-          // Obtener todos los estudiantes para filtrar
-          const estudiantesResponse = await estudiantesApi.getAll(1000, 0)
-
-          if (estudiantesResponse.success && estudiantesResponse.data) {
-            // Filtrar estudiantes que coincidan con las personas encontradas
-            const estudiantesEncontrados = estudiantesResponse.data.filter((est) =>
-              personaIds.includes(est.persona.persona_id)
-            )
-
-            setSearchResults(estudiantesEncontrados.length > 0 ? estudiantesEncontrados : [])
-          }
-        }
-      } catch (error) {
-        console.error("Error en búsqueda:", error)
-        toast.error("Error al buscar estudiantes")
-      } finally {
-        setIsSearching(false)
-      }
-    }, 500) // Debounce de 500ms
-
-    return () => clearTimeout(timeoutId)
-  }, [search])
-
-  // Determinar qué datos mostrar
-  const displayData = searchResults !== null ? searchResults : data?.data || []
-
-  const filtered = displayData
+  const displayData = searchResults !== null ? searchResults : data?.data ?? []
+  const isSearchMode = searchResults !== null
 
   function clearSearch() {
     setSearch("")
@@ -141,7 +131,6 @@ export default function EstudiantesPage() {
   }
 
   const totalPages = data?.pagination ? Math.ceil(data.pagination.total / limit) : 0
-  const isSearchMode = searchResults !== null
 
   return (
     <div className="flex flex-col gap-6">
@@ -163,12 +152,15 @@ export default function EstudiantesPage() {
 
       {/* Search */}
       <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        {isSearching
+          ? <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+          : <Search  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        }
         <input
           type="text"
-          placeholder="Buscar en todos los estudiantes (min. 3 caracteres)..."
+          placeholder={`Buscar por nombre o documento (mín. ${MIN_CHARS} caracteres)...`}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
           className="h-10 w-full rounded-lg border border-input bg-card pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
         {search && (
@@ -182,18 +174,10 @@ export default function EstudiantesPage() {
         )}
       </div>
 
-      {/* Search status */}
-      {isSearching && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Buscando en toda la base de datos...</span>
-        </div>
-      )}
-
       {isSearchMode && !isSearching && (
         <div className="flex items-center justify-between rounded-lg bg-accent/50 px-4 py-2 text-sm">
           <span className="text-accent-foreground">
-            Se encontraron <strong>{filtered.length}</strong> resultado(s) para "{search}"
+            Se encontraron <strong>{displayData.length}</strong> resultado(s) para "{search}"
           </span>
           <button
             onClick={clearSearch}
@@ -208,7 +192,7 @@ export default function EstudiantesPage() {
       <div className="rounded-xl border border-border bg-card">
         <DataTable
           columns={columns}
-          data={filtered}
+          data={displayData}
           isLoading={isLoading && !isSearchMode}
           emptyMessage={
             isSearchMode

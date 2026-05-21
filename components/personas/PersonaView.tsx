@@ -188,7 +188,6 @@ export function PersonaView({
         <div className="rounded-xl border border-border bg-card p-4">
           <SeccionLabel>Identificación</SeccionLabel>
           <dl className="flex flex-col gap-2.5">
-            <DatoFila label="Persona ID"         valor={`#${persona.persona_id}`} />
             <DatoFila label="Fecha de nacimiento" valor={formatFecha(persona.fecha_nacimiento)} />
             <DatoFila label="Edad"               valor={calcularEdad(persona.fecha_nacimiento)} />
             <DatoFila label="Género"             valor={persona.genero} />

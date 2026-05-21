@@ -83,6 +83,7 @@ export default function UsuariosPage() {
 
   async function handleResetPassword(u: UsuarioDetalle) {
     if (!confirm(`¿Resetear contraseña de ${u.username} al número de documento?`)) return
+    if (!u.persona_id) { toast.error("Este usuario no tiene persona asociada"); return }
     try {
       await usersApi.resetPassword(u.persona_id)
       toast.success("Contraseña restablecida al número de documento")
@@ -247,7 +248,7 @@ export default function UsuariosPage() {
                         <div className="flex items-center gap-3">
                           <UsuarioAvatar
                             nombres={u.nombres ?? u.username}
-                            apellidoPaterno={u.apellido_paterno}
+                            apellidoPaterno={u.apellido_paterno ?? undefined}
                           />
                           <div className="min-w-0">
                             <p className="font-medium text-foreground truncate">
