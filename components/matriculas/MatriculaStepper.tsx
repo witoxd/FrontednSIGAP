@@ -38,7 +38,6 @@ export interface MatriculaState {
   proceso:     ProcesoInscripcion | null
   estudiante:  EstudianteWithPersonaDocumento | null
   cursoId:     number | null
-  jornadaId:   number | null
   slots:       SlotState[]
 }
 
@@ -55,7 +54,6 @@ export function MatriculaStepper() {
     proceso:    null,
     estudiante: null,
     cursoId:    null,
-    jornadaId:  null,
     slots:      [],
   })
 
@@ -108,7 +106,6 @@ export function MatriculaStepper() {
           matricula: {
             estudiante_id: state.estudiante!.estudiante.estudiante_id!,
             curso_id:      state.cursoId!,
-            jornada_id:    state.jornadaId!,
           },
           archivos,
           metadata,
@@ -131,7 +128,7 @@ export function MatriculaStepper() {
   const pasoCompletado: Record<PasoNum, boolean> = {
     0: state.periodo !== null,
     1: state.estudiante !== null,
-    2: state.cursoId !== null && state.jornadaId !== null,
+    2: state.cursoId !== null,
     3: state.slots.some((s) => s.file) && !state.slots.some((s) => s.error),
   }
 
@@ -227,9 +224,8 @@ export function MatriculaStepper() {
         {paso === 2 && (
           <PasoCurso
             cursoId={state.cursoId}
-            jornadaId={state.jornadaId}
-            onChange={(cursoId, jornadaId) =>
-              setState((prev) => ({ ...prev, cursoId, jornadaId }))
+            onChange={(cursoId) =>
+              setState((prev) => ({ ...prev, cursoId }))
             }
             onSiguiente={avanzar}
             onAnterior={retroceder}
@@ -244,9 +240,8 @@ export function MatriculaStepper() {
             guardando={guardando}
             progress={progress}
             resumen={{
-              estudiante:   state.estudiante!,
-              cursoId:      state.cursoId!,
-              jornadaId:    state.jornadaId!,
+              estudiante:    state.estudiante!,
+              cursoId:       state.cursoId!,
               procesoNombre: state.proceso?.nombre,
             }}
             onSubmit={handleSubmit}

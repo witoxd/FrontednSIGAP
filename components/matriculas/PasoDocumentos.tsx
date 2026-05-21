@@ -11,7 +11,6 @@ import type {
   EstudianteWithPersonaDocumento,
   PaginatedApiResponse,
   Curso,
-  Jornada,
 } from "@/lib/types"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -35,7 +34,6 @@ interface PasoDocumentosProps {
   resumen: {
     estudiante:    EstudianteWithPersonaDocumento
     cursoId:       number
-    jornadaId:     number
     procesoNombre?: string
   }
   onSubmit:    () => void
@@ -54,18 +52,12 @@ export function PasoDocumentos({
   onSubmit,
   onAnterior,
 }: PasoDocumentosProps) {
-  // Cargar nombres de curso y jornada para el resumen
-  const { data: cursosData }   = useSWR<PaginatedApiResponse<Curso>>(
+  const { data: cursosData } = useSWR<PaginatedApiResponse<Curso>>(
     "/cursos/getAll?limit=200&offset=0",
     swrFetcher
   )
-  const { data: jornadasData } = useSWR<PaginatedApiResponse<Jornada>>(
-    "/jornadas/getAll?limit=50&offset=0",
-    swrFetcher
-  )
 
-  const curso   = cursosData?.data?.find((c) => c.curso_id   === resumen.cursoId)
-  const jornada = jornadasData?.data?.find((j) => j.jornada_id === resumen.jornadaId)
+  const curso = cursosData?.data?.find((c) => c.curso_id === resumen.cursoId)
 
   const obligCubiertos = slots.filter((s) => s.tipo.requerido_en && s.file && !s.error).length
   const totalOblig     = slots.filter((s) => s.tipo.requerido_en).length
@@ -118,7 +110,9 @@ export function PasoDocumentos({
             <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Curso</p>
               <p className="text-sm font-medium text-foreground truncate">
-                {curso ? `${curso.nombre} — ${curso.grado}` : `#${resumen.cursoId}`}
+                {curso
+                  ? `${curso.nivel} ${curso.grado} — Grupo ${curso.grupo}`
+                  : `#${resumen.cursoId}`}
               </p>
             </div>
           </div>
@@ -130,7 +124,7 @@ export function PasoDocumentos({
             <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Jornada</p>
               <p className="text-sm font-medium text-foreground truncate">
-                {jornada?.nombre ?? `#${resumen.jornadaId}`}
+                {curso?.jornada_nombre ?? "—"}
               </p>
             </div>
           </div>

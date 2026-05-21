@@ -3,43 +3,29 @@
 import { ArrowRight, ArrowLeft, BookOpen, Clock } from "lucide-react"
 import useSWR from "swr"
 import { swrFetcher } from "@/lib/api/fetcher"
-import type { PaginatedApiResponse, Curso, Jornada } from "@/lib/types"
-
-// ── Props ─────────────────────────────────────────────────────────────────────
+import type { PaginatedApiResponse, Curso } from "@/lib/types"
 
 interface PasoCursoProps {
-  cursoId:    number | null
-  jornadaId:  number | null
-  onChange:   (cursoId: number, jornadaId: number) => void
-  onSiguiente:() => void
-  onAnterior: () => void
+  cursoId:     number | null
+  onChange:    (cursoId: number) => void
+  onSiguiente: () => void
+  onAnterior:  () => void
 }
-
-// ── Componente ────────────────────────────────────────────────────────────────
 
 export function PasoCurso({
   cursoId,
-  jornadaId,
   onChange,
   onSiguiente,
   onAnterior,
 }: PasoCursoProps) {
-  const { data: cursosData }   = useSWR<PaginatedApiResponse<Curso>>(
-    "/cursos/getAll?limit=200&offset=0",
-    swrFetcher
-  )
-  const { data: jornadasData } = useSWR<PaginatedApiResponse<Jornada>>(
-    "/jornadas/getAll?limit=50&offset=0",
+  const { data: cursosData } = useSWR<PaginatedApiResponse<Curso>>(
+    "/cursos/getAll?limit=200&offset=0&activos=true",
     swrFetcher
   )
 
-  const cursos   = cursosData?.data   ?? []
-  const jornadas = jornadasData?.data ?? []
-
-  const cursoSeleccionado   = cursos.find((c) => c.curso_id === cursoId)
-  const jornadaSeleccionada = jornadas.find((j) => j.jornada_id === jornadaId)
-
-  const puedeAvanzar = cursoId !== null && jornadaId !== null
+  const cursos = cursosData?.data ?? []
+  const cursoSeleccionado = cursos.find((c) => c.curso_id === cursoId)
+  const puedeAvanzar = cursoId !== null
 
   const inputCls =
     "h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
@@ -47,63 +33,25 @@ export function PasoCurso({
   return (
     <div className="flex flex-col gap-6 max-w-2xl">
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-
-        {/* Curso */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">
-            Curso <span className="text-destructive">*</span>
-          </label>
-          <select
-            value={cursoId ?? ""}
-            onChange={(e) =>
-              onChange(Number(e.target.value), jornadaId ?? 0)
-            }
-            className={inputCls}
-          >
-            <option value="">Seleccionar curso...</option>
-            {cursos.map((c) => (
-              <option key={c.curso_id} value={c.curso_id}>
-                {c.nombre} — {c.grado}
-              </option>
-            ))}
-          </select>
-          {cursoSeleccionado?.descripcion && (
-            <p className="text-xs text-muted-foreground px-1">
-              {cursoSeleccionado.descripcion}
-            </p>
-          )}
-        </div>
-
-        {/* Jornada */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">
-            Jornada <span className="text-destructive">*</span>
-          </label>
-          <select
-            value={jornadaId ?? ""}
-            onChange={(e) =>
-              onChange(cursoId ?? 0, Number(e.target.value))
-            }
-            className={inputCls}
-          >
-            <option value="">Seleccionar jornada...</option>
-            {jornadas.map((j) => (
-              <option key={j.jornada_id} value={j.jornada_id}>
-                {j.nombre}
-              </option>
-            ))}
-          </select>
-          {jornadaSeleccionada && (jornadaSeleccionada.hora_inicio || jornadaSeleccionada.hora_fin) && (
-            <p className="text-xs text-muted-foreground px-1">
-              {jornadaSeleccionada.hora_inicio} – {jornadaSeleccionada.hora_fin}
-            </p>
-          )}
-        </div>
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-foreground">
+          Curso <span className="text-destructive">*</span>
+        </label>
+        <select
+          value={cursoId ?? ""}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className={inputCls}
+        >
+          <option value="">Seleccionar curso...</option>
+          {cursos.map((c) => (
+            <option key={c.curso_id} value={c.curso_id}>
+              {c.nivel} {c.grado} — Grupo {c.grupo} | {c.jornada_nombre ?? ""}
+            </option>
+          ))}
+        </select>
       </div>
 
-      {/* Resumen de selección */}
-      {puedeAvanzar && (
+      {cursoSeleccionado && (
         <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Resumen de asignación
@@ -116,7 +64,7 @@ export function PasoCurso({
               <div>
                 <p className="text-xs text-muted-foreground">Curso</p>
                 <p className="text-sm font-medium text-foreground">
-                  {cursoSeleccionado?.nombre} — {cursoSeleccionado?.grado}
+                  {cursoSeleccionado.nivel} {cursoSeleccionado.grado} — Grupo {cursoSeleccionado.grupo}
                 </p>
               </div>
             </div>
@@ -127,7 +75,7 @@ export function PasoCurso({
               <div>
                 <p className="text-xs text-muted-foreground">Jornada</p>
                 <p className="text-sm font-medium text-foreground">
-                  {jornadaSeleccionada?.nombre}
+                  {cursoSeleccionado.jornada_nombre ?? "—"}
                 </p>
               </div>
             </div>
@@ -135,7 +83,6 @@ export function PasoCurso({
         </div>
       )}
 
-      {/* Navegación */}
       <div className="flex items-center justify-between pt-2">
         <button
           type="button"
