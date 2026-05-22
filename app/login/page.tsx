@@ -46,20 +46,20 @@ function CompassRose({ className }: { className?: string }) {
 function LoginForm() {
   const { login } = useAuth()
   const router = useRouter()
-  const [email, setEmail] = useState("")
+  const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!email || !password) {
-      toast.error("Ingresa tu correo y contraseña")
+    if (!username || !password) {
+      toast.error("Ingresa tu usuario y contraseña")
       return
     }
     setIsSubmitting(true)
     try {
-      await login(email, password)
+      await login(username, password)
       toast.success("Sesión iniciada correctamente")
       router.push("/dashboard")
     } catch (err: unknown) {
@@ -234,10 +234,10 @@ function LoginForm() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            {/* Email */}
+            {/* Username */}
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               <label
-                htmlFor="email"
+                htmlFor="username"
                 style={{
                   color: "#3d5a80",
                   fontSize: 10,
@@ -246,15 +246,15 @@ function LoginForm() {
                   textTransform: "uppercase",
                 }}
               >
-                Correo Electrónico
+                Usuario
               </label>
               <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="usuario@ieap.edu.co"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                autoComplete="username"
+                placeholder="nombre_usuario"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 onFocus={(e) => {
                   e.target.style.borderColor = "rgba(201,168,76,0.5)"
                   e.target.style.boxShadow = "0 0 0 3px rgba(201,168,76,0.07)"
