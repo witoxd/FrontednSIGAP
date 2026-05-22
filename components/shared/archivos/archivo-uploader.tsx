@@ -50,20 +50,32 @@ interface ArchivoUploaderProps {
   className?:  string
 }
 
-// ── Constantes ────────────────────────────────────────────────────────────────
-
-const MIME_PERMITIDOS = [
-  "application/pdf",
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-]
-
-const EXTENSIONES_LABEL = "PDF, JPG, PNG, DOC"
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+const EXT_TO_MIME: Record<string, string[]> = {
+  pdf:  ["application/pdf"],
+  jpg:  ["image/jpeg"],
+  jpeg: ["image/jpeg"],
+  png:  ["image/png"],
+  webp: ["image/webp"],
+  gif:  ["image/gif"],
+  doc:  ["application/msword"],
+  docx: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+}
+
+function normalizeExt(ext: string): string {
+  return ext.toLowerCase().replace(/^\./, "")
+}
+
+function getMimesPermitidos(extensiones?: string[]): string[] | null {
+  if (!extensiones || extensiones.length === 0) return null
+  return extensiones.flatMap((ext) => EXT_TO_MIME[normalizeExt(ext)] ?? [])
+}
+
+function buildAccept(extensiones?: string[]): string {
+  if (!extensiones || extensiones.length === 0) return "image/*,.pdf,.doc,.docx"
+  return extensiones.map((e) => `.${normalizeExt(e)}`).join(",")
+}
 
 function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
@@ -133,14 +145,6 @@ export function ArchivoUploader({
 
   // ── Validación por slot ────────────────────────────────────────────────────
 
-  function validarArchivo(file: File, maxMB: number): string | null {
-    if (!MIME_PERMITIDOS.includes(file.type))
-      return `Tipo no permitido. Usa: ${EXTENSIONES_LABEL}`
-    if (file.size > maxMB * 1024 * 1024)
-      return `Excede el tamaño máximo de ${maxMB} MB`
-    return null
-  }
-
   function handleFileChange(tipoId: number, file: File | null) {
     setSlots((prev) =>
       prev.map((s) => {
@@ -151,12 +155,20 @@ export function ArchivoUploader({
           return { ...s, file: null, preview: null, error: null }
         }
 
-        const error = validarArchivo(file, maxFileSize)
-        const preview = !error && file.type.startsWith("image/")
+        const mimesPermitidos = getMimesPermitidos(s.tipo.extensiones_permitidas)
+        if (mimesPermitidos && !mimesPermitidos.includes(file.type)) {
+          const exts = (s.tipo.extensiones_permitidas ?? []).join(", ").toUpperCase()
+          return { ...s, file: null, preview: null, error: `Tipo no permitido. Formatos aceptados: ${exts}` }
+        }
+
+        if (file.size > maxFileSize * 1024 * 1024)
+          return { ...s, file: null, preview: null, error: `Excede el tamaño máximo de ${maxFileSize} MB` }
+
+        const preview = file.type.startsWith("image/")
           ? URL.createObjectURL(file)
           : null
 
-        return { ...s, file, preview, error }
+        return { ...s, file, preview, error: null }
       })
     )
     setGlobalError(null)
@@ -501,7 +513,7 @@ function SlotUpload({ slot, contexto, maxFileSize, disabled, onChange }: SlotUpl
           ref={inputRef}
           type="file"
           className="hidden"
-          accept="image/*,.pdf,.doc,.docx"
+          accept={buildAccept(slot.tipo.extensiones_permitidas)}
           disabled={disabled}
           onChange={(e) => {
             const f = e.target.files?.[0] ?? null

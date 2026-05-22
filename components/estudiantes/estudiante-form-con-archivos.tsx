@@ -83,9 +83,7 @@ export function EstudianteFormConArchivos({
         },
       }
 
-      console.log("[v0] Creando estudiante:", datosEstudiante)
       const response = await estudiantesApi.create(datosEstudiante)
-      console.log("[v0] Estudiante creado:", response)
 
       // Guardar el persona_id para el siguiente paso
       // Asumiendo que el backend devuelve el persona_id en la respuesta
@@ -112,8 +110,7 @@ export function EstudianteFormConArchivos({
   // PASO 2: Subir documentos
   // ============================================================================
 
-  const handleDocumentosSuccess = (archivos: unknown[]) => {
-    console.log("[v0] Documentos subidos:", archivos)
+  const handleDocumentosSuccess = (_archivos: unknown[]) => {
     setPaso("completado")
     
     // Opcional: redirigir después de un delay
@@ -127,7 +124,6 @@ export function EstudianteFormConArchivos({
   }
 
   const handleDocumentosError = (errorMsg: string) => {
-    console.error("[v0] Error al subir documentos:", errorMsg)
     setError(errorMsg)
   }
 

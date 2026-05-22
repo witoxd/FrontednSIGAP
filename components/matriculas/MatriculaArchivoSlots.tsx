@@ -13,11 +13,12 @@ import type { ArchivoMetadata } from "@/lib/api/services/matriculas"
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
 interface TipoArchivo {
-  tipo_archivo_id: number
-  nombre:          string
-  descripcion?:    string
-  activo?:         boolean
-  requerido_en?:   string | null
+  tipo_archivo_id:        number
+  nombre:                 string
+  descripcion?:           string
+  activo?:                boolean
+  requerido_en?:          string | null
+  extensiones_permitidas?: string[]
 }
 
 export interface SlotState {
@@ -35,18 +36,35 @@ interface MatriculaArchivoSlotsProps {
   maxFileSize?: number   // MB
 }
 
-// ── Constantes ────────────────────────────────────────────────────────────────
-
-const MIME_PERMITIDOS = [
-  "application/pdf",
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-]
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+// Mapa de extensión → MIME types. Permite validar sin depender del nombre del archivo.
+const EXT_TO_MIME: Record<string, string[]> = {
+  pdf:  ["application/pdf"],
+  jpg:  ["image/jpeg"],
+  jpeg: ["image/jpeg"],
+  png:  ["image/png"],
+  webp: ["image/webp"],
+  gif:  ["image/gif"],
+  doc:  ["application/msword"],
+  docx: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+}
+
+/** Devuelve los MIME permitidos para una lista de extensiones del tipo de archivo.
+ *  Si no hay extensiones configuradas, acepta cualquier tipo. */
+function normalizeExt(ext: string): string {
+  return ext.toLowerCase().replace(/^\./, "")
+}
+
+function getMimesPermitidos(extensiones?: string[]): string[] | null {
+  if (!extensiones || extensiones.length === 0) return null
+  return extensiones.flatMap((ext) => EXT_TO_MIME[normalizeExt(ext)] ?? [])
+}
+
+function buildAccept(extensiones?: string[]): string {
+  if (!extensiones || extensiones.length === 0) return "image/*,.pdf,.doc,.docx"
+  return extensiones.map((e) => `.${normalizeExt(e)}`).join(",")
+}
 
 function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
@@ -139,9 +157,11 @@ export function MatriculaArchivoSlots({
 
         if (!file) return { ...s, file: null, preview: null, error: null }
 
-        // Validar MIME
-        if (!MIME_PERMITIDOS.includes(file.type)) {
-          return { ...s, file: null, preview: null, error: "Tipo no permitido (PDF, JPG, PNG, DOC)" }
+        // Validar MIME según las extensiones configuradas en el tipo de archivo
+        const mimesPermitidos = getMimesPermitidos(s.tipo.extensiones_permitidas)
+        if (mimesPermitidos && !mimesPermitidos.includes(file.type)) {
+          const exts = (s.tipo.extensiones_permitidas ?? []).join(", ").toUpperCase()
+          return { ...s, file: null, preview: null, error: `Tipo no permitido. Formatos aceptados: ${exts}` }
         }
         // Validar tamaño
         if (file.size > maxFileSize * 1024 * 1024) {
@@ -323,7 +343,7 @@ function ArchivoSlot({
           ref={inputRef}
           type="file"
           className="hidden"
-          accept="image/*,.pdf,.doc,.docx"
+          accept={buildAccept(slot.tipo.extensiones_permitidas)}
           disabled={disabled}
           onChange={(e) => {
             onFileChange(e.target.files?.[0] ?? null)
