@@ -69,6 +69,7 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
    * después de registrarnos; en editar, ya lo traemos en la URL.
    */
   const [idInterno, setIdInterno] = useState<number | null>(estudianteId ?? null)
+  const [personaIdInterno, setPersonaIdInterno] = useState<number | null>(null)
   const expedienteDesbloqueado = idInterno !== null
 
   // ── Estado de carga global ─────────────────────────────────────────────────
@@ -150,6 +151,7 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
         })
         setEstado(est.estudiante.estado ?? "activo")
         setFechaIngreso(est.estudiante.fecha_ingreso?.split("T")[0] ?? "")
+        setPersonaIdInterno(est.persona.persona_id ?? null)
 
         // Poblar pasos 2-4 desde el expediente
         const exp = expedienteRes.data!
@@ -206,6 +208,8 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
           ?? (res.data as any)?.estudiante_id
         if (!nuevoId) throw new Error("El servidor no devolvió el ID del estudiante")
         setIdInterno(nuevoId)
+        const nuevoPersonaId = (res.data as any)?.persona?.persona_id ?? null
+        setPersonaIdInterno(nuevoPersonaId)
         toast.success("Estudiante creado. Ahora puedes completar el expediente.")
       } else {
         await estudiantesApi.update(idInterno!, input)
@@ -541,17 +545,9 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
        *   - el backend no retorna tipos para "estudiante"
        * En ese caso la sección queda vacía — considera mostrar un mensaje:
        */}
-      {idInterno && (
+      {idInterno && personaIdInterno && (
         <ArchivoUploader
-          persona_id={
-            /* persona_id del estudiante —
-             * necesitarás guardarlo en el estado cuando haces el POST en paso 1.
-             * Agrega: const [idPersonaInterna, setIdPersonaInterna] = useState<number | null>(null)
-             * Y en handleGuardarPaso1, tras recibir la respuesta:
-             *   setIdPersonaInterna(nuevoPersonaId)
-             */
-            idInterno!
-          }
+          persona_id={personaIdInterno}
           contexto="estudiante"
           onSuccess={() => toast.success("Documentos guardados")}
           onError={(err) => toast.error(err)}
