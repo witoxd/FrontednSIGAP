@@ -15,7 +15,7 @@ interface AuthContextValue {
   user: AuthUser | null
   isLoading: boolean
   isAuthenticated: boolean
-  login: (email: string, contraseña: string) => Promise<void>
+  login: (username: string, contraseña: string) => Promise<void>
   logout: () => Promise<void>
   hasRole: (role: string) => boolean
 }
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser({
           id: res.data.userId,
           personaId: res.data.personaId,
-          username: "",
+          username: res.data.username,
           email: res.data.email,
           roles: res.data.roles,
         })
@@ -53,8 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadUser()
   }, [loadUser])
 
-  const login = useCallback(async (email: string, contraseña: string) => {
-    const res = await authApi.login(email, contraseña)
+  const login = useCallback(async (username: string, contraseña: string) => {
+    const res = await authApi.login(username, contraseña)
     if (res.success && res.data) {
       setUser({
         id: res.data.user.id,

@@ -7,10 +7,10 @@ import {
 } from "@/lib/schemas"
 
 export const authApi = {
-  login: (email: string, contraseña: string) =>
+  login: (username: string, contraseña: string) =>
     validateWith(
       ApiResponseSchema(LoginResponseSchema),
-      api.post("/auth/login", { email, contraseña })
+      api.post("/auth/login", { username, contraseña })
     ),
 
   me: () =>
