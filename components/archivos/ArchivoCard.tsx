@@ -111,8 +111,6 @@ export function ArchivoCard({
   }
 
   // Estado: eliminando con confirmación de 2 clics
-  // Analogía: como el "¿Estás seguro?" antes de borrar un contacto del teléfono —
-  // el primer clic pide confirmación, el segundo ejecuta.
   if (eliminando) {
     return (
       <div className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5 opacity-50">
