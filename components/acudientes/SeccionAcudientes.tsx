@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Users, Star, ArrowRight, Briefcase, GraduationCap, Phone } from "lucide-react"
+import { Loader2, Users, Star, ArrowRight } from "lucide-react"
 import { acudientesApi } from "@/lib/api/services/acudientes"
-import { contactosApi } from "@/lib/api/services/contactos"
-import type { AcudienteDeEstudiante, Contacto } from "@/lib/types"
+import type { AcudienteDeEstudiante } from "@/lib/types"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -19,19 +18,17 @@ function iniciales(p: AcudienteDeEstudiante["persona"]) {
   return `${n}${a}`
 }
 
-function primerContacto(contactos: Contacto[]): string | null {
-  const c = contactos.find((c) => c.tipo_contacto === "celular" || c.tipo_contacto === "telefono")
-  return c?.valor ?? null
-}
-
-// ── Sub-componentes ───────────────────────────────────────────────────────────
-
-function Chip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">
-      {children}
-    </span>
-  )
+function tipoDocAbrev(nombreDoc?: string | null): string {
+  if (!nombreDoc) return "Doc"
+  const mapa: Record<string, string> = {
+    "cédula de ciudadanía": "CC",
+    "tarjeta de identidad": "TI",
+    "cédula de extranjería": "CE",
+    "pasaporte": "PP",
+    "registro civil": "RC",
+    "número de identificación tributaria": "NIT",
+  }
+  return mapa[nombreDoc.toLowerCase()] ?? nombreDoc.substring(0, 3).toUpperCase()
 }
 
 function AcudienteCard({
@@ -41,17 +38,6 @@ function AcudienteCard({
   item: AcudienteDeEstudiante
   onVerPerfil: (acudienteId: number) => void
 }) {
-  const [contactos, setContactos] = useState<Contacto[]>([])
-
-  useEffect(() => {
-    contactosApi
-      .getByPersona(item.persona.persona_id)
-      .then((res) => setContactos(Array.isArray(res.data) ? res.data : []))
-      .catch(() => {})
-  }, [item.persona.persona_id])
-
-  const telefono = primerContacto(contactos)
-
   return (
     <div className="group flex items-center gap-4 rounded-xl border border-border bg-background px-4 py-3.5 transition-colors hover:bg-muted/30">
 
@@ -77,39 +63,10 @@ function AcudienteCard({
             </span>
           )}
         </div>
-
-        {/* Documento */}
         <p className="text-xs text-muted-foreground mt-0.5">
-          {item.persona.tipo_documento?.nombre_documento ?? "Documento"} · {item.persona.numero_documento ?? "—"}
+          {tipoDocAbrev(item.persona.tipo_documento?.nombre_documento)} · {item.persona.numero_documento ?? "—"}
+          {item.tipo_relacion && <span className="ml-2 text-muted-foreground/60">· {item.tipo_relacion}</span>}
         </p>
-
-        {/* Chips de metadatos */}
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {item.tipo_relacion && (
-            <Chip>
-              <Users className="h-3 w-3" />
-              {item.tipo_relacion}
-            </Chip>
-          )}
-          {item.acudiente.ocupacion && (
-            <Chip>
-              <Briefcase className="h-3 w-3" />
-              {item.acudiente.ocupacion}
-            </Chip>
-          )}
-          {item.acudiente.nivel_estudio && (
-            <Chip>
-              <GraduationCap className="h-3 w-3" />
-              {item.acudiente.nivel_estudio}
-            </Chip>
-          )}
-          {telefono && (
-            <Chip>
-              <Phone className="h-3 w-3" />
-              {telefono}
-            </Chip>
-          )}
-        </div>
       </div>
 
       {/* Acción */}
