@@ -107,10 +107,10 @@ export default function DetallesProfesorPage() {
       <dl className="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-3">
         <DatoFila label="Estado"               valor={<StatusBadge status={docente.estado} />} />
         <DatoFila label="Fecha de contratación" valor={formatFecha(docente.fecha_contratacion)} />
-        <DatoFila label="Fecha de nombramiento" valor={formatFecha(profesor.fecha_nombramiento ?? undefined)} />
-        <DatoFila label="N° de resolución"      valor={profesor.numero_resolucion ?? undefined} />
+        <DatoFila label="Fecha de nombramiento" valor={formatFecha(docente.fecha_nombramiento ?? undefined)} />
+        <DatoFila label="N° de resolución"      valor={docente.numero_resolucion ?? undefined} />
         <DatoFila label="Tipo de contrato"      valor={docente.tipo_contrato ?? undefined} />
-        <DatoFila label="Grado de escalafón"    valor={profesor.grado_escalafon ?? undefined} />
+        <DatoFila label="Grado de escalafón"    valor={docente.grado_escalafon_codigo ?? undefined} />
       </dl>
 
       {/* Ubicación */}
@@ -119,26 +119,25 @@ export default function DetallesProfesorPage() {
           Asignación
         </p>
         <dl className="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-3">
-          <DatoFila label="Cargo"   valor={docente.cargo ?? undefined} />
-          <DatoFila label="Área"    valor={profesor.area ?? undefined} />
+          <DatoFila label="Área"    valor={docente.area ?? undefined} />
           <DatoFila label="Sede"    valor={docente.sede ?? undefined} />
           <DatoFila label="Jornada" valor={docente.jornada_nombre ?? undefined} />
         </dl>
       </div>
 
       {/* Formación */}
-      {(profesor.titulo || profesor.posgrado || profesor.perfil_profesional) && (
+      {(docente.titulo || docente.posgrado || docente.perfil_profesional) && (
         <div className="border-t border-border pt-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
             Formación académica
           </p>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-            <DatoFila label="Título profesional" valor={profesor.titulo} />
-            <DatoFila label="Posgrado"           valor={profesor.posgrado} />
-            {profesor.perfil_profesional && (
+            <DatoFila label="Título profesional" valor={docente.titulo} />
+            <DatoFila label="Posgrado"           valor={docente.posgrado} />
+            {docente.perfil_profesional && (
               <div className="sm:col-span-2 flex flex-col gap-0.5">
                 <dt className="text-xs text-muted-foreground">Perfil profesional</dt>
-                <dd className="text-sm text-foreground whitespace-pre-line">{profesor.perfil_profesional}</dd>
+                <dd className="text-sm text-foreground whitespace-pre-line">{docente.perfil_profesional}</dd>
               </div>
             )}
           </dl>

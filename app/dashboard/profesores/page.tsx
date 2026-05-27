@@ -1,130 +1,91 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import { toast } from "sonner"
-import { Plus, Search, Pencil, Trash2, X, Loader2, ViewIcon } from "lucide-react"
+import { Plus, Search, X, Loader2, Eye, Pencil } from "lucide-react"
 import { swrFetcher } from "@/lib/api/fetcher"
 import { profesoresApi } from "@/lib/api/services/profesores"
-import { DataTable, type Column } from "@/components/shared/data-table"
-import { StatusBadge } from "@/components/shared/status-badge"
 import type { PaginatedApiResponse, ProfesorWitchPersonaDocumento } from "@/lib/types"
 
-const PAGE_SIZE = 20
+const DEBOUNCE_MS = 400
+const MIN_CHARS   = 2
+const PAGE_SIZE   = 20
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+type FiltroEstado = "todos" | "activo" | "inactivo"
 
-/**
- * Mapea la respuesta de searchIndex al shape ProfesorWitchPersonaDocumento.
- * searchIndex devuelve { persona: {...}, profesor: {...} } — mismo shape que getAll.
- */
+const FILTROS: { valor: FiltroEstado; label: string }[] = [
+  { valor: "todos",    label: "Todos"    },
+  { valor: "activo",   label: "Activo"   },
+  { valor: "inactivo", label: "Inactivo" },
+]
+
+function estadoClasses(estado: string) {
+  if (estado === "activo") {
+    return {
+      bar:      "bg-blue-500",
+      dot:      "bg-blue-500",
+      badge:    "bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400",
+      avatarBg: "bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400",
+    }
+  }
+  return {
+    bar:      "bg-muted-foreground/30",
+    dot:      "bg-muted-foreground/50",
+    badge:    "bg-muted border border-border text-muted-foreground",
+    avatarBg: "bg-muted border border-border text-muted-foreground",
+  }
+}
+
+function estadoLabel(estado: string) {
+  return estado === "activo" ? "Activo" : "Inactivo"
+}
+
 function mapSearchResult(raw: any): ProfesorWitchPersonaDocumento {
   return {
-    persona: raw.persona ?? raw,
-    docente: raw.docente ?? raw,
+    persona:  raw.persona  ?? raw,
+    docente:  raw.docente  ?? raw,
     profesor: raw.profesor ?? raw,
   }
 }
 
-// ── Componente ────────────────────────────────────────────────────────────────
-
 export default function ProfesoresPage() {
   const router = useRouter()
-  const [page, setPage] = useState(0)
-  const [search, setSearch] = useState("")
-  const [buscando, setBuscando] = useState(false)
-  const [searchResults, setSearchResults] =
-    useState<ProfesorWitchPersonaDocumento[] | null>(null)
+  const [page, setPage]               = useState(0)
+  const [search, setSearch]           = useState("")
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchResults, setSearchResults] = useState<ProfesorWitchPersonaDocumento[] | null>(null)
+  const [filtro, setFiltro]           = useState<FiltroEstado>("todos")
+  const [hovRow, setHovRow]           = useState<number | null>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ── Carga paginada normal ─────────────────────────────────────────────────
-  const { data, isLoading, mutate } = useSWR<PaginatedApiResponse<ProfesorWitchPersonaDocumento>>(
+  const { data, isLoading } = useSWR<PaginatedApiResponse<ProfesorWitchPersonaDocumento>>(
     `/profesores/getAll?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}`,
     swrFetcher
   )
 
-  // ── Búsqueda con debounce 500 ms (igual que estudiantes/page.tsx) ─────────
-  /**
-   * Analogía: es como el buscador de un catálogo de biblioteca —
-   * no vas al estante después de cada letra que escribes,
-   * sino cuando terminas de escribir la palabra.
-   */
-  useEffect(() => {
-    const id = setTimeout(async () => {
-      if (search.trim().length < 3) {
-        setSearchResults(null)
-        return
-      }
-
-      setBuscando(true)
-      try {
-        const res = await profesoresApi.searchIndex(search.trim())
-        if (res.success && res.data) {
-          const lista = Array.isArray(res.data) ? res.data : res.data ? [res.data] : []
-          setSearchResults(lista.map(mapSearchResult))
-        }
-      } catch {
-        toast.error("Error al buscar profesores")
-      } finally {
-        setBuscando(false)
-      }
-    }, 500)
-
-    return () => clearTimeout(id)
-  }, [search])
-
-  // ── Columnas ──────────────────────────────────────────────────────────────
-  const columns: Column<ProfesorWitchPersonaDocumento>[] = [
-    {
-      key: "nombres",
-      header: "Nombre completo",
-      render: (p) =>
-        `${p.persona.nombres ?? ""} ${p.persona.apellido_paterno ?? ""} ${p.persona.apellido_materno ?? ""}`.trim() ||
-        "Sin nombre registrado",
-    },
-    {
-      key: "numero_documento",
-      header: "Documento",
-      render: (p) => p.persona.numero_documento ?? "—",
-    },
-    {
-      key: "fecha_contratacion",
-      header: "Contratación",
-      render: (p) =>
-        p.docente.fecha_contratacion
-          ? new Date(p.docente.fecha_contratacion).toLocaleDateString("es-CO")
-          : "—",
-    },
-    {
-      key: "estado",
-      header: "Estado",
-      render: (p) => <StatusBadge status={p.docente.estado} />,
-    },
-  ]
-
-  // ── Eliminar ──────────────────────────────────────────────────────────────
-  async function handleDelete(id: number) {
-    if (!confirm("¿Seguro de eliminar este profesor?")) return
+  const buscar = useCallback(async (texto: string) => {
+    const q = texto.trim()
+    if (q.length < MIN_CHARS) { setSearchResults(null); return }
+    setIsSearching(true)
     try {
-      await profesoresApi.delete(id)
-      toast.success("Profesor eliminado")
-      mutate()
-      if (searchResults !== null) clearSearch()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al eliminar")
+      const res = await profesoresApi.searchIndex(q)
+      const lista = Array.isArray(res.data) ? res.data : res.data ? [res.data] : []
+      setSearchResults(lista.map(mapSearchResult))
+    } catch {
+      toast.error("Error al buscar profesores")
+      setSearchResults([])
+    } finally {
+      setIsSearching(false)
     }
-  }
+  }, [])
 
-  function handleEdit(pro: ProfesorWitchPersonaDocumento) {
-    router.push(`/dashboard/profesores/${pro.profesor.profesor_id}/editar`)
-  }
-
-  function handleCreate() {
-    router.push("/dashboard/profesores/nuevo")
-  }
-
-  function viewDetails(pro: ProfesorWitchPersonaDocumento) {
-    router.push(`/dashboard/profesores/${pro.profesor.profesor_id}/detalles`)
+  function handleSearchChange(valor: string) {
+    setSearch(valor)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (valor.trim().length < MIN_CHARS) { setSearchResults(null); return }
+    debounceRef.current = setTimeout(() => buscar(valor), DEBOUNCE_MS)
   }
 
   function clearSearch() {
@@ -133,142 +94,226 @@ export default function ProfesoresPage() {
     setPage(0)
   }
 
-  // ── Datos a mostrar ───────────────────────────────────────────────────────
-  const displayData = searchResults !== null ? searchResults : data?.data ?? []
+  useEffect(
+    () => () => { if (debounceRef.current) clearTimeout(debounceRef.current) },
+    []
+  )
+
   const isSearchMode = searchResults !== null
-  const totalPages = data?.pagination
-    ? Math.ceil(data.pagination.total / PAGE_SIZE)
-    : 0
+  const base = isSearchMode ? searchResults : data?.data ?? []
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  const displayData = filtro === "todos"
+    ? base
+    : base.filter((p) => p.docente.estado === filtro)
+
+  const totalPages = data?.pagination ? Math.ceil(data.pagination.total / PAGE_SIZE) : 0
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-0">
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
 
-      {/* Encabezado */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Profesores</h1>
-          <p className="text-sm text-muted-foreground">
-            Gestión de profesores registrados
-          </p>
-        </div>
-        <button
-          onClick={() => router.push("/dashboard/profesores/nuevo")}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Nuevo profesor
-        </button>
-      </div>
-
-      {/* Buscador */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Buscar en todos los profesores (min. 3 caracteres)..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-10 w-full rounded-lg border border-input bg-card pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-        {search && (
-          <button
-            onClick={clearSearch}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Limpiar búsqueda"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-
-      {/* Estado: buscando en backend */}
-      {buscando && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Buscando en toda la base de datos...</span>
-        </div>
-      )}
-
-      {/* Resultado de búsqueda */}
-      {isSearchMode && !buscando && (
-        <div className="flex items-center justify-between rounded-lg bg-accent/50 px-4 py-2 text-sm">
-          <span className="text-accent-foreground">
-            Se encontraron <strong>{displayData.length}</strong> resultado(s) para "{search}"
-          </span>
-          <button
-            onClick={clearSearch}
-            className="text-accent-foreground hover:text-foreground font-medium transition-colors"
-          >
-            Ver todos
-          </button>
-        </div>
-      )}
-
-      {/* Tabla */}
-      <div className="rounded-xl border border-border bg-card">
-        <DataTable
-          columns={columns}
-          data={displayData}
-          isLoading={isLoading && !isSearchMode}
-          emptyMessage={
-            isSearchMode
-              ? `No se encontraron profesores que coincidan con "${search}"`
-              : "No hay profesores registrados"
-          }
-          actions={(p) => (
-            <div className="flex items-center justify-end gap-1">
-              <button
-                onClick={() => handleEdit(p)}
-                className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                aria-label="Editar profesor"
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => viewDetails(p)}
-                className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                aria-label="Ver detalles"
-              >
-                <ViewIcon className="w-4 h-4" />
-              </button>
-
-              { /*             <button
-                onClick={() => handleDelete(p.profesor.profesor_id!)}
-                className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                aria-label="Eliminar profesor"
-              >  
-              <Trash2 className="w-4 h-4" />
-            </button> */}
+        {/* ── Header ── */}
+        <div className="flex flex-col gap-4 px-6 py-5 border-b border-border">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-bold text-foreground">Profesores</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">Gestión de profesores registrados</p>
             </div>
-          )}
-        />
-
-      {/* Paginación — solo en modo normal */}
-      {!isSearchMode && totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-border px-6 py-3">
-          <p className="text-sm text-muted-foreground">
-            Página {page + 1} de {totalPages} ({data?.pagination.total ?? 0} registros)
-          </p>
-          <div className="flex gap-2">
             <button
-              onClick={() => setPage(Math.max(0, page - 1))}
-              disabled={page === 0}
-              className="h-8 rounded-lg border border-border px-3 text-sm text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+              onClick={() => router.push("/dashboard/profesores/nuevo")}
+              className="flex items-center gap-1.5 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
             >
-              Anterior
-            </button>
-            <button
-              onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
-              disabled={page >= totalPages - 1}
-              className="h-8 rounded-lg border border-border px-3 text-sm text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
-            >
-              Siguiente
+              <Plus className="w-3.5 h-3.5" />
+              Nuevo profesor
             </button>
           </div>
+
+          {/* Buscador + chips */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative w-72">
+              {isSearching
+                ? <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground animate-spin" />
+                : <Search  className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              }
+              <input
+                type="text"
+                placeholder="Buscar por nombre o documento…"
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-8 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              {search && (
+                <button onClick={clearSearch} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="w-px h-5 bg-border shrink-0" />
+
+            {FILTROS.map((f) => (
+              <button
+                key={f.valor}
+                onClick={() => setFiltro(f.valor)}
+                className={`h-7 px-3 rounded-full text-[11px] font-medium transition-colors ${
+                  filtro === f.valor
+                    ? "bg-primary/15 border border-primary/30 text-primary"
+                    : "border border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
-      )}
+
+        {/* ── Banner búsqueda ── */}
+        {isSearchMode && !isSearching && (
+          <div className="flex items-center justify-between px-6 py-2 bg-accent/40 border-b border-border text-xs">
+            <span className="text-muted-foreground">
+              <strong className="text-foreground">{displayData.length}</strong> resultado(s) para &quot;{search}&quot;
+            </span>
+            <button onClick={clearSearch} className="text-primary font-semibold hover:underline">
+              Ver todos
+            </button>
+          </div>
+        )}
+
+        {/* ── Cabecera columnas ── */}
+        <div
+          className="grid bg-muted/40 border-b border-border px-6 py-2"
+          style={{ gridTemplateColumns: "4px 44px 1fr 150px 130px 110px 72px" }}
+        >
+          {["", "#", "NOMBRE COMPLETO", "DOCUMENTO", "ÁREA", "ESTADO", ""].map((h, i) => (
+            <span key={i} className="text-[9px] font-bold tracking-widest text-muted-foreground/50 uppercase"
+              style={{ textAlign: i === 1 ? "center" : undefined }}
+            >
+              {h}
+            </span>
+          ))}
+        </div>
+
+        {/* ── Contenido ── */}
+        {(isLoading && !isSearchMode) ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : displayData.length === 0 ? (
+          <div className="flex flex-col items-center py-20 gap-3">
+            <p className="text-sm text-muted-foreground">
+              {isSearchMode
+                ? `Sin resultados para "${search}"`
+                : filtro !== "todos"
+                ? "No hay profesores con ese estado"
+                : "No hay profesores registrados"}
+            </p>
+            {filtro !== "todos" && (
+              <button onClick={() => setFiltro("todos")} className="text-xs text-primary hover:underline">
+                Quitar filtro
+              </button>
+            )}
+          </div>
+        ) : (
+          displayData.map((pro, i) => {
+            const cls   = estadoClasses(pro.docente.estado)
+            const lbl   = estadoLabel(pro.docente.estado)
+            const isHov = hovRow === pro.profesor.profesor_id
+            const inicial = (pro.persona.apellido_paterno ?? pro.persona.nombres ?? "?").charAt(0).toUpperCase()
+
+            return (
+              <div
+                key={pro.profesor.profesor_id}
+                onMouseEnter={() => setHovRow(pro.profesor.profesor_id ?? null)}
+                onMouseLeave={() => setHovRow(null)}
+                className={`grid items-center px-6 border-b border-border/60 transition-colors cursor-pointer ${
+                  isHov ? "bg-muted/60" : i % 2 === 0 ? "bg-transparent" : "bg-muted/20"
+                }`}
+                style={{ gridTemplateColumns: "4px 44px 1fr 150px 130px 110px 72px", height: 46 }}
+              >
+                {/* Barra lateral */}
+                <div className={`w-1 h-7 rounded-sm transition-opacity ${cls.bar} ${isHov ? "opacity-100" : "opacity-40"}`} />
+
+                {/* Número */}
+                <span className="text-[10px] text-muted-foreground/40 font-mono text-center">
+                  {String(page * PAGE_SIZE + i + 1).padStart(2, "0")}
+                </span>
+
+                {/* Avatar + nombre */}
+                <div className="flex items-center gap-2.5 pl-2 min-w-0">
+                  <div className={`w-7 h-7 rounded-md shrink-0 flex items-center justify-center text-xs font-bold ${cls.avatarBg}`}>
+                    {inicial}
+                  </div>
+                  <span className="text-sm truncate">
+                    <strong className="font-semibold text-foreground">{pro.persona.apellido_paterno ?? ""}</strong>
+                    {pro.persona.apellido_materno ? ` ${pro.persona.apellido_materno}` : ""}
+                    {", "}
+                    <span className="text-muted-foreground">{pro.persona.nombres ?? ""}</span>
+                  </span>
+                </div>
+
+                {/* Documento */}
+                <span className="text-[11px] text-muted-foreground font-mono tracking-wide">
+                  {pro.persona.tipo_documento?.nombre_documento ?? "CC"} {pro.persona.numero_documento ?? "—"}
+                </span>
+
+                {/* Área */}
+                <span className="text-[11px] text-muted-foreground truncate">
+                  {pro.docente.area ?? "—"}
+                </span>
+
+                {/* Estado */}
+                <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit ${cls.badge}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${cls.dot}`} />
+                  {lbl}
+                </div>
+
+                {/* Acciones */}
+                <div className={`flex gap-1.5 justify-end transition-opacity ${isHov ? "opacity-100" : "opacity-0"}`}>
+                  <button
+                    onClick={() => router.push(`/dashboard/profesores/${pro.profesor.profesor_id}/detalles`)}
+                    className="w-7 h-7 rounded-md flex items-center justify-center bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors"
+                    aria-label="Ver perfil"
+                  >
+                    <Eye className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => router.push(`/dashboard/profesores/${pro.profesor.profesor_id}/editar`)}
+                    className="w-7 h-7 rounded-md flex items-center justify-center border border-border text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors"
+                    aria-label="Editar"
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            )
+          })
+        )}
+
+        {/* ── Paginación ── */}
+        {!isSearchMode && totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-3 border-t border-border">
+            <span className="text-xs text-muted-foreground">
+              Página {page + 1} de {totalPages} · {data?.pagination.total ?? 0} registros
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage(Math.max(0, page - 1))}
+                disabled={page === 0}
+                className="h-7 px-3 rounded-md border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Anterior
+              </button>
+              <button
+                onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+                disabled={page >= totalPages - 1}
+                className="h-7 px-3 rounded-md border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
-    </div >
   )
 }

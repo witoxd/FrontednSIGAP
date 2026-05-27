@@ -7,22 +7,22 @@ import { ContactoManager } from "@/components/shared/contactos/contacto-manager"
 import { profesoresApi }   from "@/lib/api/services/profesores"
 import { profesorContactoEmergenciaApi } from "@/lib/api/services/profesorContactoEmergencia"
 import { jornadasApi } from "@/lib/api/services/jornadas"
-import type { ProfesorWitchPersonaDocumento, Persona, Jornada } from "@/lib/types"
+import { decretosApi } from "@/lib/api/services/decretos"
+import { gradosEscalafonApi } from "@/lib/api/services/gradosEscalafon"
+import type { ProfesorWitchPersonaDocumento, Persona, Jornada, Decreto, GradoEscalafon } from "@/lib/types"
 import { toast } from "sonner"
 
 // ── Tipos internos ────────────────────────────────────────────────────────────
 
 interface ProfesorFormData {
-  estado:             "activo" | "inactivo"
-  cargo:              string
+  decreto_id:         number
+  grado_escalafon_id: number
   sede:               string
   jornada_id:         number
   tipo_contrato:      string
-  fecha_contratacion: string
   area:               string
   fecha_nombramiento: string
   numero_resolucion:  string
-  grado_escalafon:    string
   titulo:             string
   posgrado:           string
   perfil_profesional: string
@@ -95,22 +95,19 @@ function personaFromApi(p: ProfesorWitchPersonaDocumento): PersonaFormData {
 }
 
 function profesorFromApi(p: ProfesorWitchPersonaDocumento): ProfesorFormData {
-  const d  = p.docente  as any
-  const pr = p.profesor as any
+  const d = p.docente as any
   return {
-    estado:             d.estado              ?? "activo",
-    fecha_contratacion: d.fecha_contratacion?.split?.("T")[0] ?? "",
-    cargo:              d.cargo               ?? "",
-    sede:               d.sede                ?? "",
-    jornada_id:         d.jornada_id          ?? 0,
-    tipo_contrato:      d.tipo_contrato        ?? "",
-    area:               pr.area               ?? "",
-    fecha_nombramiento: pr.fecha_nombramiento?.split?.("T")[0] ?? "",
-    numero_resolucion:  pr.numero_resolucion  ?? "",
-    grado_escalafon:    pr.grado_escalafon    ?? "",
-    titulo:             pr.titulo             ?? "",
-    posgrado:           pr.posgrado           ?? "",
-    perfil_profesional: pr.perfil_profesional ?? "",
+    decreto_id:         d.decreto_id         ?? 0,
+    grado_escalafon_id: d.grado_escalafon_id ?? 0,
+    sede:               d.sede               ?? "",
+    jornada_id:         d.jornada_id         ?? 0,
+    tipo_contrato:      d.tipo_contrato      ?? "",
+    area:               d.area               ?? "",
+    fecha_nombramiento: d.fecha_nombramiento?.split?.("T")[0] ?? "",
+    numero_resolucion:  d.numero_resolucion  ?? "",
+    titulo:             d.titulo             ?? "",
+    posgrado:           d.posgrado           ?? "",
+    perfil_profesional: d.perfil_profesional ?? "",
   }
 }
 
@@ -138,9 +135,14 @@ export function ProfesorForm({ profesorId, modo, onCancel }: ProfesorFormProps) 
   const [guardando,       setGuardando]       = useState(false)
   const [error,           setError]           = useState<string | null>(null)
   const [jornadas,        setJornadas]        = useState<Jornada[]>([])
+  const [decretos,        setDecretos]        = useState<Decreto[]>([])
+  const [gradosCatalogo,  setGradosCatalogo]  = useState<GradoEscalafon[]>([])
+  const [gradosFiltrados, setGradosFiltrados] = useState<GradoEscalafon[]>([])
 
   useEffect(() => {
     jornadasApi.getAll(100).then((res) => setJornadas(res.data ?? []))
+    decretosApi.getAll().then((res) => setDecretos((res.data as any)?.data ?? res.data ?? []))
+    gradosEscalafonApi.getAll().then((res) => setGradosCatalogo((res.data as any)?.data ?? res.data ?? []))
   }, [])
 
   // ── Datos del formulario ─────────────────────────────────────────────────
@@ -154,9 +156,9 @@ export function ProfesorForm({ profesorId, modo, onCancel }: ProfesorFormProps) 
   })
 
   const [profesorData, setProfesorData] = useState<ProfesorFormData>({
-    estado: "activo", fecha_contratacion: "", fecha_nombramiento: "",
-    numero_resolucion: "", jornada_id: 0, cargo: "", area: "",
-    sede: "", tipo_contrato: "", grado_escalafon: "",
+    decreto_id: 0, grado_escalafon_id: 0,
+    fecha_nombramiento: "", numero_resolucion: "", jornada_id: 0, area: "",
+    sede: "", tipo_contrato: "",
     titulo: "", posgrado: "", perfil_profesional: "",
   })
 
@@ -178,10 +180,17 @@ export function ProfesorForm({ profesorId, modo, onCancel }: ProfesorFormProps) 
       try {
         const res = await profesoresApi.getById(profesorId!)
         const data = res.data as ProfesorWitchPersonaDocumento
+        const pf = profesorFromApi(data)
         setPersonaData(personaFromApi(data))
-        setProfesorData(profesorFromApi(data))
+        setProfesorData(pf)
         setIdPersona((data.persona as any).persona_id)
         setIdProfesor(data.profesor.profesor_id ?? null)
+        // Poblar grados filtrados del decreto cargado
+        if (pf.decreto_id) {
+          gradosEscalafonApi.getByDecretoId(pf.decreto_id)
+            .then((res) => setGradosFiltrados((res.data as any)?.data ?? res.data ?? []))
+            .catch(() => {})
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error al cargar datos")
       } finally {
@@ -299,24 +308,6 @@ export function ProfesorForm({ profesorId, modo, onCancel }: ProfesorFormProps) 
         <SeccionHeader icon={Briefcase} title="Información laboral" />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-          <Campo label="Estado" required>
-            <select
-              required disabled={guardando}
-              value={profesorData.estado}
-              onChange={(e) => setProfesorData((p) => ({ ...p, estado: e.target.value as "activo" | "inactivo" }))}
-              className={inputClass}
-            >
-              <option value="activo">Activo</option>
-              <option value="inactivo">Inactivo</option>
-            </select>
-          </Campo>
-
-          <Campo label="Cargo" required>
-            <input required disabled={guardando} value={profesorData.cargo}
-              onChange={(e) => setProfesorData((p) => ({ ...p, cargo: e.target.value }))}
-              className={inputClass} placeholder="Ej: Docente, Director de grupo" />
-          </Campo>
-
           <Campo label="Área" required>
             <input required disabled={guardando} value={profesorData.area}
               onChange={(e) => setProfesorData((p) => ({ ...p, area: e.target.value }))}
@@ -339,10 +330,39 @@ export function ProfesorForm({ profesorId, modo, onCancel }: ProfesorFormProps) 
             </select>
           </Campo>
 
+          <Campo label="Decreto" required>
+            <select
+              required disabled={guardando}
+              value={profesorData.decreto_id || ""}
+              onChange={(e) => {
+                const decretoId = Number(e.target.value)
+                const filtrados = gradosCatalogo.filter(g => g.decreto_id === decretoId)
+                setGradosFiltrados(filtrados)
+                setProfesorData((p) => ({ ...p, decreto_id: decretoId, grado_escalafon_id: 0 }))
+              }}
+              className={inputClass}
+            >
+              <option value="">Seleccionar decreto…</option>
+              {decretos.map((d) => (
+                <option key={d.decreto_id} value={d.decreto_id}>{d.nombre}</option>
+              ))}
+            </select>
+          </Campo>
+
           <Campo label="Grado de escalafón" required>
-            <input required disabled={guardando} value={profesorData.grado_escalafon}
-              onChange={(e) => setProfesorData((p) => ({ ...p, grado_escalafon: e.target.value }))}
-              className={inputClass} placeholder="Ej: 2, 11, 14" />
+            <select
+              required disabled={guardando || !profesorData.decreto_id}
+              value={profesorData.grado_escalafon_id || ""}
+              onChange={(e) => setProfesorData((p) => ({ ...p, grado_escalafon_id: Number(e.target.value) }))}
+              className={inputClass}
+            >
+              <option value="">
+                {profesorData.decreto_id ? "Seleccionar grado…" : "Primero seleccione un decreto"}
+              </option>
+              {gradosFiltrados.map((g) => (
+                <option key={g.grado_id} value={g.grado_id}>{g.codigo}{g.descripcion ? ` — ${g.descripcion}` : ""}</option>
+              ))}
+            </select>
           </Campo>
 
           <Campo label="N° de resolución" required>
@@ -364,12 +384,6 @@ export function ProfesorForm({ profesorId, modo, onCancel }: ProfesorFormProps) 
                 <option key={j.jornada_id} value={j.jornada_id}>{j.nombre}</option>
               ))}
             </select>
-          </Campo>
-
-          <Campo label="Fecha de contratación" required>
-            <input required type="date" disabled={guardando} value={profesorData.fecha_contratacion}
-              onChange={(e) => setProfesorData((p) => ({ ...p, fecha_contratacion: e.target.value }))}
-              className={inputClass} />
           </Campo>
 
           <Campo label="Fecha de nombramiento" required>
