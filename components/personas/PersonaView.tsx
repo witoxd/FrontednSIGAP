@@ -230,12 +230,6 @@ export function PersonaView({
           {rolContent}
         </div>
 
-        {/* Contactos */}
-        <div className="rounded-xl border border-border bg-card p-5">
-          <SeccionLabel>Contactos</SeccionLabel>
-          <ContactoList personaId={persona.persona_id} />
-        </div>
-
         {/* Documentos */}
         <div className="rounded-xl border border-border bg-card p-5">
           <SeccionLabel>Documentos</SeccionLabel>
