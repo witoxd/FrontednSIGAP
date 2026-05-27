@@ -6,7 +6,7 @@ import {
   AdministrativoWithPersonaDocumentoSchema,
 } from "@/lib/schemas"
 
-export const admisnitrativosApui = {
+export const administrativosApi = {
   getAll: (limit = 50, offset = 0) =>
     validateWith(
       PaginatedApiResponseSchema(AdministrativoWithPersonaDocumentoSchema),
@@ -17,6 +17,12 @@ export const admisnitrativosApui = {
     validateWith(
       ApiResponseSchema(AdministrativoWithPersonaDocumentoSchema),
       api.get(`/administrativos/getById/${id}`)
+    ),
+
+  searchIndex: (query: string, limit = 50) =>
+    validateWith(
+      ApiResponseSchema(AdministrativoWithPersonaDocumentoSchema),
+      api.get(`/administrativos/searchIndex/${encodeURIComponent(query)}`, { limit })
     ),
 
   create: (data: CreateAdministrativoInput) =>

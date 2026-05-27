@@ -19,7 +19,7 @@ export const CursoDetallesSchema = CursoSchema.extend({
     periodo_id:          z.number(),
     anio:                z.number(),
     periodo_descripcion: z.string().optional().nullable(),
-    // periodo_activo no viene del backend — no incluir
+    periodo_activo:      z.boolean().optional().nullable(),
     profesor_id:         z.number(),
     nombres:             z.string(),
     apellido_paterno:    z.string(),

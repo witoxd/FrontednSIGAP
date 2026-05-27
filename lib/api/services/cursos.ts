@@ -37,4 +37,11 @@ export const cursosApi = {
 
   delete: (id: number) =>
     api.delete<ApiResponse>(`/cursos/delete/${id}`),
+
+  getEstudiantes: (cursoId: number, opts: { periodo_id?: number; estado?: string } = {}) => {
+    const params: Record<string, string | number> = {}
+    if (opts.periodo_id) params.periodo_id = opts.periodo_id
+    if (opts.estado)     params.estado     = opts.estado
+    return api.get<ApiResponse>(`/matriculas/byCurso/${cursoId}`, params)
+  },
 }

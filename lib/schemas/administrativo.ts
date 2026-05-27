@@ -5,6 +5,7 @@ import { DocenteSchema } from "./profesor"
 export const AdministrativoSchema = z.object({
   administrativo_id: z.number(),
   docente_id: z.number(),
+  cargo: z.string().optional().nullable(),
 })
 
 export const AdministrativoWithPersonaDocumentoSchema = z.object({

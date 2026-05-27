@@ -1,11 +1,10 @@
 import { z } from "zod"
 
-const API_BASE_URL =
+const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+).replace(/\/$/, "")
 
-// El token ya no se maneja en el cliente — el navegador envía la cookie
-// httpOnly automáticamente. Estas funciones se mantienen vacías para no
-// romper imports existentes durante la migración.
+
 export function setToken(_token: string) {}
 export function removeToken() {}
 
@@ -22,7 +21,10 @@ export async function validateWith<T>(
   promise: Promise<unknown>
 ): Promise<T> {
   const raw = await promise
-  // Algunos endpoints devuelven JSON doblemente serializado (string en vez de objeto)
+  // tener en cuenta que algunos endpoints devuelven JSON doblemente serializado (string en vez de objeto)
+  // esto puede traer errores de validación difíciles de depurar, así que intentamos parsear el JSON
+  // si es que viene como string antes de validarlo contra el schema
+  // lecion aprendida cuando me dijieron que valide la salida de datos del backend
   const parsed = typeof raw === "string" ? (() => { try { return JSON.parse(raw) } catch { return raw } })() : raw
   const result = schema.safeParse(parsed)
   if (!result.success) {
@@ -70,7 +72,6 @@ async function handleResponse<T>(
       const refreshed = await tryRefresh()
       if (refreshed) return retry()
     }
-    // Solo redirigir si no estamos ya en /login para evitar bucle infinito
     if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
       window.location.href = "/login"
     }
@@ -110,7 +111,7 @@ export async function apiClient<T>(
   const doFetch = () =>
     fetch(url, {
       headers,
-      credentials: "include", // envía las cookies httpOnly automáticamente
+      credentials: "include", 
       ...rest,
     })
 

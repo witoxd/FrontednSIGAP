@@ -75,6 +75,7 @@ export const MatriculaDetallesSchema = z.object({
     fecha_fin:    z.string().optional().nullable(),
   }),
   estudiante: z.object({
+    estudiante_id:    z.number(),
     nombres:          z.string(),
     apellido_paterno: z.string(),
     apellido_materno: z.string().optional().nullable(),
@@ -82,6 +83,7 @@ export const MatriculaDetallesSchema = z.object({
     nombre_documento: z.string().optional().nullable(),
   }),
   archivos: z.array(z.object({
+    archivo_id:  z.number(),
     nombre:      z.string(),
     url_archivo: z.string(),
     descripcion: z.string().optional().nullable(),
@@ -92,6 +94,7 @@ export const MatriculaDetallesSchema = z.object({
     nombre:      z.string(),
     descripcion: z.string().optional().nullable(),
     entregado:   z.boolean(),
+    archivo_id:  z.number().optional().nullable(),
     url_archivo: z.string().optional().nullable(),
     fecha_carga: z.string().optional().nullable(),
   })),

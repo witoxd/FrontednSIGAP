@@ -320,16 +320,57 @@ export interface ColegioAnteriorAttributes {
 // Docente Models (campos compartidos de contratación)
 // ============================================================================
 
+export interface Decreto {
+  decreto_id: number
+  codigo: string
+  nombre: string
+  descripcion?: string | null
+}
+
+export interface GradoEscalafon {
+  grado_id: number
+  decreto_id: number
+  codigo: string
+  descripcion?: string | null
+  orden: number
+  decreto_codigo?: string
+  decreto_nombre?: string
+}
+
+export interface CreateDecretoInput {
+  codigo: string
+  nombre: string
+  descripcion?: string
+}
+
+export interface CreateGradoEscalafonInput {
+  decreto_id: number
+  codigo: string
+  descripcion?: string
+  orden?: number
+}
+
 export interface Docente {
   docente_id: number
   persona_id?: number
-  cargo?: string | null
   sede?: string | null
   jornada_id?: number | null
   jornada_nombre?: string | null
   tipo_contrato?: string | null
   estado: "activo" | "inactivo"
   fecha_contratacion: string
+  // Campos académicos/profesionales
+  decreto_id?: number | null
+  decreto_codigo?: string | null
+  decreto_nombre?: string | null
+  titulo?: string | null
+  area?: string | null
+  posgrado?: string | null
+  grado_escalafon_id?: number | null
+  grado_escalafon_codigo?: string | null
+  fecha_nombramiento?: string | null
+  numero_resolucion?: string | null
+  perfil_profesional?: string | null
 }
 
 // ============================================================================
@@ -339,13 +380,6 @@ export interface Docente {
 export interface Profesor {
   profesor_id: number
   docente_id: number
-  fecha_nombramiento?: string | null
-  numero_resolucion?: string | null
-  area?: string | null
-  grado_escalafon?: string | null
-  titulo?: string | null
-  posgrado?: string | null
-  perfil_profesional?: string | null
 }
 
 export interface ProfesorContactoEmergencia {
@@ -368,18 +402,18 @@ export interface ProfesorDetalles {
 export interface CreateProfesorInput {
   persona: Persona
   profesor: {
-    cargo?: string
     sede?: string
     jornada_id?: number
     tipo_contrato?: string
     estado?: "activo" | "inactivo"
     fecha_contratacion?: string
-    fecha_nombramiento?: string
-    numero_resolucion?: string
-    grado_escalafon?: string
+    decreto_id?: number
+    grado_escalafon_id?: number
     area?: string
     titulo?: string
     posgrado?: string
+    fecha_nombramiento?: string
+    numero_resolucion?: string
     perfil_profesional?: string
   }
 }
@@ -397,6 +431,7 @@ export interface ProfesorWitchPersonaDocumento {
 export interface Administrativo {
   administrativo_id: number
   docente_id: number
+  cargo?: string | null
 }
 
 export interface CreateAdministrativoInput {
@@ -456,6 +491,21 @@ export interface CursoDetalles extends Curso {
     apellido_paterno:    string
     apellido_materno:    string
   }[]
+}
+
+export interface EstudianteDeCurso {
+  matricula_id:     number
+  estudiante_id:    number
+  estado_actual:    "activa" | "finalizada" | "retirada" | "inactiva"
+  fecha_matricula:  string
+  anio:             number
+  periodo_id:       number
+  periodo_descripcion?: string | null
+  nombres:          string
+  apellido_paterno: string
+  apellido_materno?: string | null
+  numero_documento?: string | null
+  tipo_documento?:  string | null
 }
 
 export interface CreateCursoInput {
@@ -521,6 +571,7 @@ export interface MatriculaDetalles {
     fecha_fin?:    string | null
   }
   estudiante: {
+    estudiante_id:     number
     nombres:           string
     apellido_paterno:  string
     apellido_materno?: string | null
@@ -528,6 +579,7 @@ export interface MatriculaDetalles {
     nombre_documento?: string | null
   }
   archivos: Array<{
+    archivo_id:   number
     nombre:       string
     url_archivo:  string
     descripcion?: string | null
@@ -538,6 +590,7 @@ export interface MatriculaDetalles {
     nombre:       string
     descripcion?: string | null
     entregado:    boolean
+    archivo_id?:  number | null
     url_archivo?: string | null
     fecha_carga?: string | null
   }>

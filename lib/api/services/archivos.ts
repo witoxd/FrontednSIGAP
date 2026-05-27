@@ -14,21 +14,20 @@ export interface Archivo {
   url_archivo:     string        // ruta relativa en el servidor
   asignado_por?:   number
   activo:          boolean       // soft-delete: false = eliminado
+  es_de_matricula?: boolean      // true si está vinculado a una matrícula
   created_at?:     string
   updated_at?:     string
 }
 
 export interface UpdateArchivoInput {
-  nombre?:          string
-  descripcion?:     string
-  tipo_archivo_id?: number
-  /** Si se pasa un File, se reemplaza el archivo físico */
-  archivo?:         File
+  descripcion?: string
+  /** Si se pasa un File, reemplaza el archivo físico (debe respetar extensiones del tipo original) */
+  archivo?:     File
 }
 
 // ── Helpers internos ──────────────────────────────────────────────────────────
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api"
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api").replace(/\/$/, "")
 
 /**
  * Fetch autenticado que retorna un Blob.
@@ -87,9 +86,7 @@ async function update(
   if (input.archivo) {
     const formData = new FormData()
     formData.append("archivo", input.archivo)
-    if (input.nombre)          formData.append("nombre",          input.nombre)
-    if (input.descripcion)     formData.append("descripcion",     input.descripcion)
-    if (input.tipo_archivo_id) formData.append("tipo_archivo_id", String(input.tipo_archivo_id))
+    if (input.descripcion) formData.append("descripcion", input.descripcion)
 
     const res = await fetch(`${API_BASE}/archivos/update/${archivoId}`, {
       method:      "PUT",
@@ -103,9 +100,7 @@ async function update(
 
   // Solo metadatos → JSON
   return api.put<ApiResponse<Archivo>>(`/archivos/update/${archivoId}`, {
-    nombre:          input.nombre,
-    descripcion:     input.descripcion,
-    tipo_archivo_id: input.tipo_archivo_id,
+    descripcion: input.descripcion,
   })
 }
 
