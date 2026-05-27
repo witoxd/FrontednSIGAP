@@ -67,9 +67,9 @@ const NAV_ITEMS: NavItem[] = [
 
 // Ítems que van dentro del acordeón "Administración" (solo admin, uso ocasional)
 const ADMIN_ACCORDION_ITEMS: NavItem[] = [
-  { href: "/dashboard/configuracion/jornadas",       label: "Jornadas",         icon: Clock,        roles: ["admin"] },
-  { href: "/dashboard/configuracion/tipos-archivo",  label: "Tipos de Archivo", icon: FolderArchive, roles: ["admin"] },
-  { href: "/dashboard/configuracion/tipos-documento", label: "Tipos Documento", icon: IdCard,        roles: ["admin"] },
+  { href: "/dashboard/configuracion/jornadas",          label: "Jornadas",          icon: Clock,         roles: ["admin"] },
+  { href: "/dashboard/configuracion/tipos-archivo",     label: "Tipos de Archivo",  icon: FolderArchive, roles: ["admin"] },
+  { href: "/dashboard/configuracion/tipos-documento",   label: "Tipos Documento",   icon: IdCard,        roles: ["admin"] },
 ]
 
 // ── Props ─────────────────────────────────────────────────────────────────────
