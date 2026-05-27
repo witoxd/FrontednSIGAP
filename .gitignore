@@ -7,4 +7,5 @@ node_modules/
 .DS_Store
 .claude
 .agents
+.env
 skills-lock.json
