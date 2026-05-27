@@ -45,9 +45,9 @@ function getMimesPermitidos(extensiones?: string[]): string[] | null {
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface ArchivoEditModalProps {
-  archivo:       Archivo
-  onGuardado:    (archivoActualizado: Archivo) => void
-  onCerrar:      () => void
+  archivo:    Archivo
+  onGuardado: (archivoActualizado: Archivo) => void
+  onCerrar:   () => void
 }
 
 // ── Componente ────────────────────────────────────────────────────────────────
@@ -57,30 +57,27 @@ export function ArchivoEditModal({
   onGuardado,
   onCerrar,
 }: ArchivoEditModalProps) {
-  const [nombre,        setNombre]        = useState(archivo.nombre)
-  const [descripcion,   setDescripcion]   = useState(archivo.descripcion ?? "")
-  const [tipoArchivoId, setTipoArchivoId] = useState<number>(archivo.tipo_archivo_id)
-  const [nuevoArchivo,  setNuevoArchivo]  = useState<File | null>(null)
-  const [archivoError,  setArchivoError]  = useState<string | null>(null)
-  const [guardando,     setGuardando]     = useState(false)
-  const [error,         setError]         = useState<string | null>(null)
+  const [descripcion,  setDescripcion]  = useState(archivo.descripcion ?? "")
+  const [nuevoArchivo, setNuevoArchivo] = useState<File | null>(null)
+  const [archivoError, setArchivoError] = useState<string | null>(null)
+  const [guardando,    setGuardando]    = useState(false)
+  const [error,        setError]        = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Cargar tipos de archivo para el select
+  // Cargar tipos solo para obtener las extensiones permitidas del tipo actual
   const { data: tiposData } = useSWR<PaginatedApiResponse<TipoArchivo>>(
     "/tipos-archivos/getAll",
     swrFetcher
   )
-  const tipos = tiposData?.data?.filter((t) => t.activo !== false) ?? []
-  const tipoSeleccionado = tipos.find((t) => t.tipo_archivo_id === tipoArchivoId)
+  const tipoActual = tiposData?.data?.find((t) => t.tipo_archivo_id === archivo.tipo_archivo_id)
 
   function handleNuevoArchivo(file: File | null) {
     setArchivoError(null)
     if (!file) { setNuevoArchivo(null); return }
-    const mimes = getMimesPermitidos(tipoSeleccionado?.extensiones_permitidas)
+    const mimes = getMimesPermitidos(tipoActual?.extensiones_permitidas)
     if (mimes && !mimes.includes(file.type)) {
-      const exts = (tipoSeleccionado?.extensiones_permitidas ?? []).join(", ").toUpperCase()
-      setArchivoError(`Tipo no permitido para este tipo de archivo. Formatos aceptados: ${exts}`)
+      const exts = (tipoActual?.extensiones_permitidas ?? []).join(", ").toUpperCase()
+      setArchivoError(`Tipo no permitido. Formatos aceptados: ${exts}`)
       return
     }
     setNuevoArchivo(file)
@@ -91,16 +88,12 @@ export function ArchivoEditModal({
 
   async function handleGuardar(e: React.FormEvent) {
     e.preventDefault()
-    if (!nombre.trim()) { setError("El nombre no puede estar vacío"); return }
-
     setGuardando(true)
     setError(null)
     try {
       const res = await archivosApi.update(archivo.archivo_id, {
-        nombre:          nombre.trim(),
-        descripcion:     descripcion.trim() || undefined,
-        tipo_archivo_id: tipoArchivoId,
-        archivo:         nuevoArchivo ?? undefined,
+        descripcion: descripcion.trim() || undefined,
+        archivo:     nuevoArchivo ?? undefined,
       })
 
       toast.success("Archivo actualizado correctamente")
@@ -113,7 +106,6 @@ export function ArchivoEditModal({
     }
   }
 
-  // Cerrar con Escape
   function handleOverlayClick(e: React.MouseEvent) {
     if (e.target === e.currentTarget && !guardando) onCerrar()
   }
@@ -141,28 +133,16 @@ export function ArchivoEditModal({
         {/* Formulario */}
         <form onSubmit={handleGuardar} className="flex flex-col gap-4 p-5">
 
-          {/* Archivo actual */}
+          {/* Info del archivo actual (solo lectura) */}
           <div className="flex items-center gap-3 rounded-lg bg-muted/30 border border-border px-3 py-2.5">
             <File className="h-4 w-4 text-muted-foreground shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-xs text-muted-foreground">Archivo actual</p>
               <p className="text-sm font-medium text-foreground truncate">{archivo.nombre}</p>
+              {tipoActual && (
+                <p className="text-xs text-muted-foreground/70 mt-0.5">{tipoActual.nombre}</p>
+              )}
             </div>
-          </div>
-
-          {/* Nombre */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">
-              Nombre <span className="text-destructive">*</span>
-            </label>
-            <input
-              required
-              disabled={guardando}
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="Nombre del archivo"
-              className={inputCls}
-            />
           </div>
 
           {/* Descripción */}
@@ -175,24 +155,6 @@ export function ArchivoEditModal({
               placeholder="Descripción opcional"
               className={inputCls}
             />
-          </div>
-
-          {/* Tipo de archivo */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Tipo de archivo</label>
-            <select
-              disabled={guardando}
-              value={tipoArchivoId}
-              onChange={(e) => setTipoArchivoId(Number(e.target.value))}
-              className={inputCls}
-            >
-              <option value={0} disabled>Seleccionar tipo...</option>
-              {tipos.map((t) => (
-                <option key={t.tipo_archivo_id} value={t.tipo_archivo_id}>
-                  {t.nombre}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Reemplazar archivo físico (opcional) */}
@@ -234,7 +196,7 @@ export function ArchivoEditModal({
               ref={fileInputRef}
               type="file"
               className="hidden"
-              accept={buildAccept(tipoSeleccionado?.extensiones_permitidas)}
+              accept={buildAccept(tipoActual?.extensiones_permitidas)}
               onChange={(e) => {
                 handleNuevoArchivo(e.target.files?.[0] ?? null)
                 e.target.value = ""
