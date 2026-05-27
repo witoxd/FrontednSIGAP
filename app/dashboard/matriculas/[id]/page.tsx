@@ -5,9 +5,10 @@ import { useParams } from "next/navigation"
 import { useState, useEffect, useCallback } from "react"
 import {
   ArrowLeft, Loader2, BookOpen, Calendar, FileText,
-  CheckCircle2, XCircle, AlertCircle, ShieldAlert, Pencil,
+  CheckCircle2, XCircle, AlertCircle, ShieldAlert, Pencil, UserRound, LogOut,
 } from "lucide-react"
 import { matriculasApi } from "@/lib/api/services/matriculas"
+import { archivosApi }  from "@/lib/api/services/archivos"
 import { cursosApi }     from "@/lib/api/services/cursos"
 import { jornadasApi }   from "@/lib/api/services/jornadas"
 import { StatusBadge }   from "@/components/shared/status-badge"
@@ -234,6 +235,83 @@ function ModalEditarCurso({
   )
 }
 
+// ── Modal retirar matrícula ───────────────────────────────────────────────────
+
+function ModalRetirarMatricula({
+  matriculaId,
+  onRetirada,
+  onCancelar,
+}: {
+  matriculaId: number
+  onRetirada:  () => void
+  onCancelar:  () => void
+}) {
+  const [motivo,   setMotivo]   = useState("")
+  const [cargando, setCargando] = useState(false)
+
+  const retirar = async () => {
+    if (!motivo.trim()) { toast.error("El motivo de retiro es requerido"); return }
+    setCargando(true)
+    try {
+      await matriculasApi.retirar(matriculaId, motivo)
+      toast.success("Matrícula retirada correctamente")
+      onRetirada()
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al retirar la matrícula")
+    } finally {
+      setCargando(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-card border border-border rounded-xl shadow-lg p-6 w-full max-w-sm mx-4 flex flex-col gap-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+            <LogOut className="h-4 w-4" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold">Retirar matrícula</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Esta acción no se puede deshacer.</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-muted-foreground">
+            Motivo del retiro <span className="text-destructive">*</span>
+          </label>
+          <textarea
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-destructive/30 min-h-[80px]"
+            placeholder="Describe el motivo del retiro…"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            maxLength={500}
+          />
+          <p className="text-xs text-muted-foreground/60 text-right">{motivo.length}/500</p>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={onCancelar}
+            disabled={cargando}
+            className="flex-1 h-9 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={retirar}
+            disabled={cargando || !motivo.trim()}
+            className="flex-1 h-9 rounded-lg bg-destructive text-destructive-foreground text-sm font-semibold hover:bg-destructive/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {cargando && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            Confirmar retiro
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export default function DetallesMatriculaPage() {
@@ -243,7 +321,8 @@ export default function DetallesMatriculaPage() {
   const [detalles,      setDetalles]      = useState<MatriculaDetalles | null>(null)
   const [cargando,      setCargando]      = useState(true)
   const [error,         setError]         = useState<string | null>(null)
-  const [editandoCurso, setEditandoCurso] = useState(false)
+  const [editandoCurso,   setEditandoCurso]   = useState(false)
+  const [retirando,       setRetirando]       = useState(false)
 
   const cargar = useCallback(async () => {
     try {
@@ -330,6 +409,16 @@ export default function DetallesMatriculaPage() {
                 <p className="text-xs text-destructive">Matrícula retirada</p>
               </div>
             )}
+
+            {!esRetirada && (
+              <button
+                onClick={() => setRetirando(true)}
+                className="flex items-center justify-center gap-2 w-full h-9 rounded-lg border border-destructive/40 text-destructive text-xs font-semibold hover:bg-destructive/5 transition-colors"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Retirar matrícula
+              </button>
+            )}
           </div>
 
           {/* Card curso */}
@@ -400,12 +489,20 @@ export default function DetallesMatriculaPage() {
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-blue-600 text-sm font-semibold select-none">
                 {estudiante.nombres.charAt(0).toUpperCase()}
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-foreground">{nombreCompleto}</p>
                 <p className="text-xs text-muted-foreground">
                   {estudiante.nombre_documento ?? "Documento"}: {estudiante.numero_documento}
                 </p>
               </div>
+              <Link
+                href={`/dashboard/estudiantes/${estudiante.estudiante_id}/detalles`}
+                className="flex items-center gap-1.5 shrink-0 px-3 h-8 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+                title="Ver perfil del estudiante"
+              >
+                <UserRound className="h-3.5 w-3.5" />
+                Ver perfil
+              </Link>
             </div>
           </div>
 
@@ -439,15 +536,13 @@ export default function DetallesMatriculaPage() {
                             {formatFecha(ar.fecha_carga)}
                           </span>
                         )}
-                        {ar.entregado && ar.url_archivo && (
-                          <a
-                            href={ar.url_archivo}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        {ar.entregado && !!ar.archivo_id && (
+                          <button
+                            onClick={() => archivosApi.view(ar.archivo_id as number).catch(() => toast.error("No se pudo abrir el archivo"))}
                             className="text-xs text-primary hover:underline"
                           >
                             Ver archivo
-                          </a>
+                          </button>
                         )}
                       </div>
                       {ar.descripcion && (
@@ -470,14 +565,12 @@ export default function DetallesMatriculaPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm text-foreground truncate">{a.nombre}</span>
                         <span className="text-xs text-muted-foreground/60">{a.tipo_archivo.nombre}</span>
-                        <a
-                          href={a.url_archivo}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          onClick={() => archivosApi.view(a.archivo_id).catch(() => toast.error("No se pudo abrir el archivo"))}
                           className="text-xs text-primary hover:underline"
                         >
                           Ver archivo
-                        </a>
+                        </button>
                       </div>
                       {a.descripcion && (
                         <p className="text-xs text-muted-foreground/60">{a.descripcion}</p>
@@ -553,6 +646,14 @@ export default function DetallesMatriculaPage() {
           cursoActualId={detalles.curso_id}
           onGuardado={() => { setEditandoCurso(false); cargar() }}
           onCancelar={() => setEditandoCurso(false)}
+        />
+      )}
+
+      {retirando && (
+        <ModalRetirarMatricula
+          matriculaId={matriculaId}
+          onRetirada={() => { setRetirando(false); cargar() }}
+          onCancelar={() => setRetirando(false)}
         />
       )}
     </div>

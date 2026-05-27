@@ -6,12 +6,10 @@ import { PersonaForm, type PersonaFormData } from "@/components/personas/persona
 import type { Persona } from "@/lib/types"
 
 interface AdministrativoData {
-  cargo?:              string
-  sede?:               string
-  jornada_id?:         number
-  tipo_contrato?:      string
-  estado?:             "activo" | "inactivo"
-  fecha_contratacion?: string
+  cargo?:         string
+  sede?:          string
+  jornada_id?:    number
+  tipo_contrato?: string
 }
 
 interface AdministrativoFormProps {
@@ -57,11 +55,9 @@ export function AdministrativoForm({
   })
 
   const [adminData, setAdminData] = useState<AdministrativoData>({
-    cargo:              initialData?.administrativo?.cargo              ?? "",
-    sede:               initialData?.administrativo?.sede               ?? "",
-    tipo_contrato:      initialData?.administrativo?.tipo_contrato      ?? "",
-    estado:             initialData?.administrativo?.estado             ?? "activo",
-    fecha_contratacion: initialData?.administrativo?.fecha_contratacion ?? "",
+    cargo:         initialData?.administrativo?.cargo         ?? "",
+    sede:          initialData?.administrativo?.sede          ?? "",
+    tipo_contrato: initialData?.administrativo?.tipo_contrato ?? "",
   })
 
   async function handleSubmit(e: React.FormEvent) {
@@ -116,25 +112,6 @@ export function AdministrativoForm({
               <option value="">Seleccionar…</option>
               {TIPOS_CONTRATO.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">Estado</label>
-            <select
-              value={adminData.estado ?? "activo"} disabled={isSubmitting}
-              onChange={(e) => setAdminData((d) => ({ ...d, estado: e.target.value as "activo" | "inactivo" }))}
-              className={inputClass}
-            >
-              <option value="activo">Activo</option>
-              <option value="inactivo">Inactivo</option>
-            </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">Fecha de contratación</label>
-            <input
-              type="date" value={adminData.fecha_contratacion ?? ""} disabled={isSubmitting}
-              onChange={(e) => setAdminData((d) => ({ ...d, fecha_contratacion: e.target.value }))}
-              className={inputClass}
-            />
           </div>
         </div>
       </div>

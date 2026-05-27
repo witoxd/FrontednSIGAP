@@ -216,7 +216,10 @@ export function DirectorGrupoSeccion({ profesorId }: DirectorGrupoSectionProps) 
       ])
       setDirecciones((dirRes.data as any) ?? [])
       setAsignaciones((asigRes.data as any) ?? [])
-      setCursos(cursosRes.data ?? [])
+            setCursos((cursosRes.data ?? []).map((curso: any) => ({
+        ...curso,
+        jornada_nombre: curso.jornada_nombre ?? undefined,
+      })))
       setPeriodos(periodosRes.data ?? [])
     } catch {
       toast.error("Error al cargar direcciones de grupo")
