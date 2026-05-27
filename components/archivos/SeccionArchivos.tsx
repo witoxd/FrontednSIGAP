@@ -104,7 +104,7 @@ export function SeccionArchivos({
           <ArchivoCard
             key={archivo.archivo_id}
             archivo={archivo}
-            editable={editable}
+            editable={editable && !archivo.es_de_matricula}
             onEditar={setEditando}
             onEliminado={handleEliminado}
           />
