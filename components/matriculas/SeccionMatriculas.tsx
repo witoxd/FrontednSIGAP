@@ -113,10 +113,8 @@ function MatriculaCard({ matricula }: { matricula: MatriculaDeEstudiante }) {
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-semibold text-foreground">
               {matricula.curso_nombre}
-              {matricula.grado && (
-                <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                  · Grado {matricula.grado}
-                </span>
+              {matricula.curso_grupo && (
+                <span className="ml-1"> {matricula.curso_grupo}</span>
               )}
             </p>
             <EstadoBadge estado={matricula.estado_actual} />
@@ -124,25 +122,13 @@ function MatriculaCard({ matricula }: { matricula: MatriculaDeEstudiante }) {
 
           {/* Metadatos secundarios */}
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
-            <span>{matricula.jornada_nombre}</span>
+            <span>Jornada: {matricula.jornada_nombre}</span>
             <span>Año {matricula.anio}</span>
             {matricula.periodo_descripcion && (
               <span>{matricula.periodo_descripcion}</span>
             )}
             <span>Matriculado: {formatFecha(matricula.fecha_matricula)}</span>
           </div>
-
-          {/* Fechas del período */}
-          {(matricula.periodo_fecha_inicio || matricula.periodo_fecha_fin) && (
-            <div className="mt-1 flex gap-x-4 text-xs text-muted-foreground/70">
-              {matricula.periodo_fecha_inicio && (
-                <span>Inicio periodo: {formatFecha(matricula.periodo_fecha_inicio)}</span>
-              )}
-              {matricula.periodo_fecha_fin && (
-                <span>Fin periodo: {formatFecha(matricula.periodo_fecha_fin)}</span>
-              )}
-            </div>
-          )}
 
           {/* Retiro */}
           {esRetirada && (
