@@ -93,10 +93,6 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
     lugar_nacimiento: "",
     expedida_en: "",
   })
-  const [estado, setEstado] = useState<
-    "activo" | "inactivo" | "graduado" | "suspendido" | "expulsado"
-  >("activo")
-  const [fechaIngreso, setFechaIngreso] = useState("")
   const [fichaData, setFichaData] = useState<FichaFormData>(fichaFormVacio())
   const [viviendaData, setViviendaData] = useState<ViviendaFormData>(viviendaFormVacio())
   const [colegiosData, setColegiosData] = useState<ColegiosFormData>(colegiosFormVacio())
@@ -149,8 +145,6 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
           serial_registro_civil: est.persona.serial_registro_civil ?? "",
           expedida_en: est.persona.expedida_en ?? "",
         })
-        setEstado(est.estudiante.estado ?? "activo")
-        setFechaIngreso(est.estudiante.fecha_ingreso?.split("T")[0] ?? "")
         setPersonaIdInterno(est.persona.persona_id ?? null)
 
         // Poblar pasos 2-4 desde el expediente
@@ -199,7 +193,7 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
     try {
       const input: CreateEstudianteInput = {
         persona: { ...personaData },
-        estudiante: { estado, fecha_ingreso: fechaIngreso },
+        estudiante: {estado: "inactivo", fecha_ingreso: new Date().toISOString().split("T")[0] },
       }
 
       if (modo === "crear") {
@@ -342,43 +336,6 @@ export function EstudianteStepper({ modo, estudianteId }: EstudianteStepperProps
               onChange={setPersonaData}
               disabled={guardando}
             />
-          </div>
-
-          <div className="bg-card border rounded-lg p-6 space-y-4">
-            <h2 className="text-lg font-semibold">Información Académica</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Estado <span className="text-destructive">*</span>
-                </label>
-                <select
-                  required
-                  value={estado}
-                  onChange={(e) => setEstado(e.target.value as typeof estado)}
-                  disabled={guardando}
-                  className={inputClass}
-                >
-                  <option value="activo">Activo</option>
-                  <option value="inactivo">Inactivo</option>
-                  <option value="graduado">Graduado</option>
-                  <option value="suspendido">Suspendido</option>
-                  <option value="expulsado">Expulsado</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Fecha de Ingreso
-                </label>
-                <input
-                  type="date"
-                  value={fechaIngreso}
-                  onChange={(e) => setFechaIngreso(e.target.value)}
-                  disabled={guardando}
-                  className={inputClass}
-                />
-              </div>
-            </div>
           </div>
 
           <div className="flex justify-end">
