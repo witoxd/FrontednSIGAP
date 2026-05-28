@@ -26,13 +26,14 @@ export function ReemplazoModal({
   const [resultados,   setResultados]   = useState<ProfesorWitchPersonaDocumento[]>([])
   const [seleccionado, setSeleccionado] = useState<ProfesorWitchPersonaDocumento | null>(null)
   const [fechaInicio,  setFechaInicio]  = useState(new Date().toISOString().split("T")[0])
+  const [fechaFin,     setFechaFin]     = useState("")
   const [motivo,       setMotivo]       = useState("")
   const [guardando,    setGuardando]    = useState(false)
 
   useEffect(() => {
     if (!open) {
       setQuery(""); setResultados([]); setSeleccionado(null)
-      setMotivo(""); setGuardando(false)
+      setFechaFin(""); setMotivo(""); setGuardando(false)
     }
   }, [open])
 
@@ -58,6 +59,7 @@ export function ReemplazoModal({
         profesor_id:             seleccionado.profesor.profesor_id,
         reemplaza_a_profesor_id: profesorReemplazadoId,
         fecha_inicio:            fechaInicio,
+        fecha_fin:               fechaFin,
         motivo:                  motivo || undefined,
       })
       toast.success("Reemplazo registrado")
@@ -137,14 +139,25 @@ export function ReemplazoModal({
           )}
         </div>
 
-        {/* Fecha inicio */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-foreground">Fecha de inicio *</label>
-          <input
-            type="date" value={fechaInicio} disabled={guardando}
-            onChange={(e) => setFechaInicio(e.target.value)}
-            className={inputClass}
-          />
+        {/* Fechas */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-foreground">Fecha de inicio *</label>
+            <input
+              type="date" value={fechaInicio} disabled={guardando}
+              onChange={(e) => setFechaInicio(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-foreground">Fecha de fin *</label>
+            <input
+              type="date" value={fechaFin} disabled={guardando}
+              min={fechaInicio || undefined}
+              onChange={(e) => setFechaFin(e.target.value)}
+              className={inputClass}
+            />
+          </div>
         </div>
 
         {/* Motivo */}
@@ -168,7 +181,7 @@ export function ReemplazoModal({
           </button>
           <button
             type="button" onClick={confirmar}
-            disabled={!seleccionado || !fechaInicio || guardando}
+            disabled={!seleccionado || !fechaInicio || !fechaFin || guardando}
             className="flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {guardando ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar reemplazo"}
