@@ -149,7 +149,7 @@
   --success: #16a34a;
   --success-foreground: #ffffff;
   --warning: #d97706;
-  --warning-foreground: #ffffff;
+  --warning-foreground: #d97706;
 }
 
 .dark {
@@ -179,7 +179,7 @@
   --success: #22c55e;
   --success-foreground: #0a0f1e;
   --warning: #f59e0b;
-  --warning-foreground: #0a0f1e;
+  --warning-foreground: #d97706;
 }
 
 @layer base {
@@ -269,7 +269,7 @@
   --success: #16a34a;
   --success-foreground: #ffffff;
   --warning: #d97706;
-  --warning-foreground: #ffffff;
+  --warning-foreground: #d97706;
 }
 
 /* App dark: alias semántico de .dark */
@@ -300,7 +300,7 @@
   --success: #22c55e;
   --success-foreground: #0a0f1e;
   --warning: #f59e0b;
-  --warning-foreground: #0a0f1e;
+  --warning-foreground: #d97706;
 }
 
 /* Marine: el tema gateway (login). Navy profundo + dorado. */
