@@ -14,6 +14,8 @@ import { toast } from "sonner"
 import { Modal } from "@/components/shared/modal"
 import { SeccionEstudiantes } from "@/components/cursos/SeccionEstudiantes"
 import { SeccionDocentes }    from "@/components/cursos/SeccionDocentes"
+import type { DirectorPeriodo, AsignacionPeriodo } from "@/components/cursos/SeccionDocentes"
+import type { EstudiantePeriodo } from "@/components/cursos/SeccionEstudiantes"
 import type { CursoDetalles, Jornada, NivelEducativo } from "@/lib/types"
 import { jornadasApi } from "@/lib/api/services/jornadas"
 import { swrFetcher } from "@/lib/api/fetcher"
@@ -124,8 +126,9 @@ export default function CursoDetallePage() {
   const router  = useRouter()
   const cursoId = Number(params.id)
 
-  const [tab,       setTab]       = useState<Tab>("estudiantes")
-  const [editModal, setEditModal] = useState(false)
+  const [tab,          setTab]          = useState<Tab>("estudiantes")
+  const [editModal,    setEditModal]    = useState(false)
+  const [periodoSelId, setPeriodoSelId] = useState<number | null>(null)
 
   const { data, isLoading, error, mutate } = useSWR(
     `curso-detalles-${cursoId}`,
@@ -138,18 +141,35 @@ export default function CursoDetallePage() {
   )
   const jornadas = jornadasData?.data ?? []
 
+  const { data: periodosData } = useSWR(
+    "/periodos-matricula/getAll",
+    () => periodoMatriculaApi.getAll(),
+    { revalidateOnFocus: false }
+  )
+  const periodos: PeriodoMatricula[] = (periodosData?.data as PeriodoMatricula[]) ?? []
+
   const { data: periodoActivoData } = useSWR(
     "periodo-activo",
     () => periodoMatriculaApi.getActivo()
   )
   const periodoActivo = periodoActivoData?.data as PeriodoMatricula | null | undefined
 
-  const curso = data?.data as CursoDetalles | undefined
+  // Período efectivo: el seleccionado manualmente, o el activo al cargar
+  const periodoEfectivoId = periodoSelId ?? periodoActivo?.periodo_id ?? null
 
-  // Director más reciente para el sidebar
-  const directorActual = periodoActivo
-    ? curso?.directores?.find((d) => d.periodo_id === periodoActivo.periodo_id) ?? curso?.directores?.[0]
-    : curso?.directores?.[0]
+  // Query unificada por período — se re-ejecuta al cambiar de período
+  const { data: periodoDetallesData, isLoading: cargandoPeriodo } = useSWR(
+    periodoEfectivoId ? `curso-periodo-${cursoId}-${periodoEfectivoId}` : null,
+    () => cursosApi.getDetallesPorPeriodo(cursoId, periodoEfectivoId!),
+    { revalidateOnFocus: false }
+  )
+
+  const periodoDetalles = (periodoDetallesData as any)?.data
+  const estudiantesPeriodo: EstudiantePeriodo[] = periodoDetalles?.estudiantes ?? []
+  const directorPeriodo:    DirectorPeriodo | null = periodoDetalles?.director ?? null
+  const asignacionesPeriodo: AsignacionPeriodo[]  = periodoDetalles?.asignaciones ?? []
+
+  const curso = data?.data as CursoDetalles | undefined
 
   async function handleUpdate(formData: {
     grado: string; nivel: NivelEducativo; grupo: string; jornada_id: number; capacidad_maxima: number
@@ -272,22 +292,21 @@ export default function CursoDetallePage() {
             </dl>
           </div>
 
-          {/* Director actual */}
+          {/* Director del período seleccionado */}
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground pb-2 border-b border-border mb-3">
               Director de grupo
             </p>
-            {directorActual ? (
+            {cargandoPeriodo ? (
+              <p className="text-sm text-muted-foreground">Cargando…</p>
+            ) : directorPeriodo ? (
               <div className="flex items-center gap-2.5">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <Star className="h-3.5 w-3.5" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
-                    {[directorActual.nombres, directorActual.apellido_paterno].join(" ")}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {directorActual.periodo_descripcion ?? `Año ${directorActual.anio}`}
+                    {[directorPeriodo.nombres, directorPeriodo.apellido_paterno].join(" ")}
                   </p>
                 </div>
               </div>
@@ -296,43 +315,43 @@ export default function CursoDetallePage() {
             )}
           </div>
 
-          {/* Resumen docentes */}
+          {/* Resumen docentes del período */}
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground pb-2 border-b border-border mb-3">
               Docentes
             </p>
-            {curso.asignaciones.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin asignaciones</p>
-            ) : (
-              <div className="flex flex-col gap-1.5">
-                {[...new Set(curso.asignaciones.map((a) => a.profesor_id))].slice(0, 4).map((pid) => {
-                  const a = curso.asignaciones.find((x) => x.profesor_id === pid)!
-                  return (
-                    <div key={pid} className="flex items-center gap-2">
+            {cargandoPeriodo ? (
+              <p className="text-sm text-muted-foreground">Cargando…</p>
+            ) : (() => {
+              const profesoresUnicos = [...new Map(asignacionesPeriodo.map((a) => [a.profesor_id, a])).values()]
+              return profesoresUnicos.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sin asignaciones</p>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {profesoresUnicos.slice(0, 4).map((a) => (
+                    <div key={a.profesor_id} className="flex items-center gap-2">
                       <GraduationCap className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                       <span className="text-sm text-foreground truncate">
                         {a.nombres} {a.apellido_paterno}
                       </span>
                     </div>
-                  )
-                })}
-                {[...new Set(curso.asignaciones.map((a) => a.profesor_id))].length > 4 && (
-                  <p className="text-xs text-muted-foreground">
-                    +{[...new Set(curso.asignaciones.map((a) => a.profesor_id))].length - 4} más
-                  </p>
-                )}
-              </div>
-            )}
+                  ))}
+                  {profesoresUnicos.length > 4 && (
+                    <p className="text-xs text-muted-foreground">+{profesoresUnicos.length - 4} más</p>
+                  )}
+                </div>
+              )
+            })()}
           </div>
 
-          {/* Materias resumen */}
-          {curso.asignaciones.length > 0 && (
+          {/* Materias del período */}
+          {!cargandoPeriodo && asignacionesPeriodo.length > 0 && (
             <div className="rounded-xl border border-border bg-card p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground pb-2 border-b border-border mb-3">
                 Materias
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {[...new Set(curso.asignaciones.map((a) => a.materia))].map((m) => (
+                {[...new Set(asignacionesPeriodo.map((a) => a.materia))].map((m) => (
                   <span key={m} className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                     <BookOpen className="h-2.5 w-2.5" />
                     {m}
@@ -346,33 +365,57 @@ export default function CursoDetallePage() {
         {/* Contenido principal — tabs */}
         <div className="flex flex-col gap-4">
 
-          {/* Selector de tabs */}
-          <div className="flex gap-1 rounded-lg border border-border bg-muted/30 p-1 w-fit">
-            {([
-              { key: "estudiantes", icon: Users,         label: "Estudiantes" },
-              { key: "docentes",    icon: GraduationCap, label: "Docentes"    },
-            ] as const).map(({ key, icon: Icon, label }) => (
-              <button
-                key={key}
-                onClick={() => setTab(key)}
-                className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                  tab === key
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </button>
-            ))}
+          {/* Selector de período + tabs en la misma fila */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex gap-1 rounded-lg border border-border bg-muted/30 p-1 w-fit">
+              {([
+                { key: "estudiantes", icon: Users,         label: "Estudiantes" },
+                { key: "docentes",    icon: GraduationCap, label: "Docentes"    },
+              ] as const).map(({ key, icon: Icon, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setTab(key)}
+                  className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                    tab === key
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Selector de período — compartido entre tabs */}
+            <select
+              value={periodoEfectivoId ?? ""}
+              onChange={(e) => setPeriodoSelId(e.target.value ? Number(e.target.value) : null)}
+              className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="" disabled>Sin período</option>
+              {periodos.map((p) => (
+                <option key={p.periodo_id} value={p.periodo_id}>
+                  {p.anio}{p.descripcion ? ` — ${p.descripcion}` : ""}
+                  {p.periodo_id === periodoActivo?.periodo_id ? " (activo)" : ""}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Contenido del tab */}
           <div className="rounded-xl border border-border bg-card p-5">
             {tab === "estudiantes" ? (
-              <SeccionEstudiantes cursoId={cursoId} periodoActivo={periodoActivo ?? null} />
+              <SeccionEstudiantes
+                estudiantes={estudiantesPeriodo}
+                cargando={cargandoPeriodo}
+              />
             ) : (
-              <SeccionDocentes detalles={curso} periodoActivo={periodoActivo ?? null} />
+              <SeccionDocentes
+                director={directorPeriodo}
+                asignaciones={asignacionesPeriodo}
+                cargando={cargandoPeriodo}
+              />
             )}
           </div>
         </div>
