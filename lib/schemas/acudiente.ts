@@ -18,7 +18,6 @@ export const AcudienteWithPersonaSchema = z.object({
 
 export const AcudienteEstudianteSchema = z.object({
   acudiente_estudiante_id: z.number(),
-  estudiante_id: z.number(),
   acudiente_id: z.number(),
   tipo_relacion: z.string().optional().nullable(),
   es_principal: z.boolean().optional(),

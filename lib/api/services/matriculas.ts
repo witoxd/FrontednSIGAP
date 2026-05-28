@@ -130,7 +130,7 @@ export const matriculasApi = {
     ),
 
   retirar: (id: number, motivo: string) =>
-    api.post<ApiResponse>(`/matriculas/retirar/${id}`, motivo ? { motivo } : {}),
+    api.put<ApiResponse>(`/matriculas/retirar/${id}`, motivo ? { motivo } : {}),
 
   processMatricula,
 

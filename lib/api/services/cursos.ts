@@ -44,4 +44,7 @@ export const cursosApi = {
     if (opts.estado)     params.estado     = opts.estado
     return api.get<ApiResponse>(`/matriculas/byCurso/${cursoId}`, params)
   },
+
+  getDetallesPorPeriodo: (cursoId: number, periodoId: number) =>
+    api.get<ApiResponse>(`/cursos/getDetallesPorPeriodo/${cursoId}`, { periodo_id: periodoId }),
 }
