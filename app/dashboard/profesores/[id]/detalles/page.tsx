@@ -11,7 +11,7 @@ import { StatusBadge }   from "@/components/shared/status-badge"
 import { ReemplazoModal } from "@/components/profesores/reemplazo-modal"
 import { AsignacionesSeccion } from "@/components/profesores/asignaciones-seccion"
 import { DirectorGrupoSeccion } from "@/components/profesores/director-grupo-seccion"
-import type { ProfesorDetalles, ReemplazosProfesorResponse, ReemplazoProfesor } from "@/lib/types"
+import type { ProfesorDetalles, ReemplazosProfesorResponse } from "@/lib/types"
 import { toast } from "sonner"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -44,7 +44,6 @@ export default function DetallesProfesorPage() {
   const [error,        setError]        = useState<string | null>(null)
   const [reemplazos,   setReemplazos]   = useState<ReemplazosProfesorResponse | null>(null)
   const [modalAbierto, setModalAbierto] = useState(false)
-  const [cerrandoId,   setCerrandoId]   = useState<number | null>(null)
 
   const cargarDatos = useCallback(async () => {
     setCargando(true)
@@ -63,20 +62,6 @@ export default function DetallesProfesorPage() {
   }, [profesorId])
 
   useEffect(() => { cargarDatos() }, [cargarDatos])
-
-  async function cerrarReemplazo(reemplazo: ReemplazoProfesor) {
-    const hoy = new Date().toISOString().split("T")[0]
-    setCerrandoId(reemplazo.reemplazo_id)
-    try {
-      await reemplazosApi.cerrar(reemplazo.reemplazo_id, hoy)
-      toast.success("Reemplazo cerrado")
-      cargarDatos()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al cerrar reemplazo")
-    } finally {
-      setCerrandoId(null)
-    }
-  }
 
   if (cargando) {
     return (
@@ -98,7 +83,6 @@ export default function DetallesProfesorPage() {
   }
 
   const { docente, profesor, contactos_emergencia } = data
-  const reemplazoActivoRecibido = reemplazos?.recibidos.find((r) => !r.fecha_fin)
 
   const rolContent = (
     <div className="flex flex-col gap-6">
@@ -185,18 +169,6 @@ export default function DetallesProfesorPage() {
             Reemplazos
           </p>
           <div className="flex gap-2">
-            {reemplazoActivoRecibido && (
-              <button
-                type="button"
-                disabled={cerrandoId === reemplazoActivoRecibido.reemplazo_id}
-                onClick={() => cerrarReemplazo(reemplazoActivoRecibido)}
-                className="flex items-center gap-1.5 h-8 rounded-lg border border-border px-3 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
-              >
-                {cerrandoId === reemplazoActivoRecibido.reemplazo_id
-                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : "Cerrar reemplazo activo"}
-              </button>
-            )}
             {docente.estado === "activo" && (
               <button
                 type="button"
@@ -223,15 +195,10 @@ export default function DetallesProfesorPage() {
                       <div>
                         <p className="font-medium">{r.nombre_reemplazante ?? "Profesor sin nombre"}</p>
                         <p className="text-xs text-muted-foreground">
-                          {formatFecha(r.fecha_inicio)} → {r.fecha_fin ? formatFecha(r.fecha_fin) : "Vigente"}
+                          {formatFecha(r.fecha_inicio)} → {formatFecha(r.fecha_fin)}
                         </p>
                         {r.motivo && <p className="text-xs text-muted-foreground">{r.motivo}</p>}
                       </div>
-                      {!r.fecha_fin && (
-                        <span className="text-xs font-medium text-amber-600 bg-amber-50 dark:bg-amber-950/30 rounded px-1.5 py-0.5">
-                          Activo
-                        </span>
-                      )}
                     </li>
                   ))}
                 </ul>
@@ -247,7 +214,7 @@ export default function DetallesProfesorPage() {
                     >
                       <p className="font-medium">{r.nombre_reemplazado ?? "Profesor sin nombre"}</p>
                       <p className="text-xs text-muted-foreground">
-                        {formatFecha(r.fecha_inicio)} → {r.fecha_fin ? formatFecha(r.fecha_fin) : "Vigente"}
+                        {formatFecha(r.fecha_inicio)} → {formatFecha(r.fecha_fin)}
                       </p>
                       {r.motivo && <p className="text-xs text-muted-foreground">{r.motivo}</p>}
                     </li>
