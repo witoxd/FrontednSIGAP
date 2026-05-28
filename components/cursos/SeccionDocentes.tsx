@@ -1,12 +1,27 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { GraduationCap, Star, Clock, ArrowRight, BookOpen } from "lucide-react"
-import type { CursoDetalles } from "@/lib/types"
-import type { PeriodoMatricula } from "@/lib/api/services/periodoMatricula"
-import { periodoMatriculaApi } from "@/lib/api/services/periodoMatricula"
-import useSWR from "swr"
+
+// ── Tipos ─────────────────────────────────────────────────────────────────────
+
+export interface DirectorPeriodo {
+  director_id:      number
+  profesor_id:      number
+  nombres:          string
+  apellido_paterno: string
+  apellido_materno?: string | null
+}
+
+export interface AsignacionPeriodo {
+  asignacion_id:    number
+  materia:          string
+  horas_semanales?: number | null
+  profesor_id:      number
+  nombres:          string
+  apellido_paterno: string
+  apellido_materno?: string | null
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -17,36 +32,15 @@ function nombreCompleto(d: { nombres: string; apellido_paterno: string; apellido
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface SeccionDocentesProps {
-  detalles:      CursoDetalles
-  periodoActivo: PeriodoMatricula | null
+  director:     DirectorPeriodo | null
+  asignaciones: AsignacionPeriodo[]
+  cargando:     boolean
 }
 
 // ── Componente ────────────────────────────────────────────────────────────────
 
-export function SeccionDocentes({ detalles, periodoActivo }: SeccionDocentesProps) {
+export function SeccionDocentes({ director, asignaciones, cargando }: SeccionDocentesProps) {
   const router = useRouter()
-
-  // Período seleccionado: activo por defecto, libre si no hay
-  const [periodoSelId, setPeriodoSelId] = useState<number | "">(periodoActivo?.periodo_id ?? "")
-
-  const { data: periodosData } = useSWR(
-    "/periodos-matricula/getAll",
-    () => periodoMatriculaApi.getAll(),
-    { revalidateOnFocus: false }
-  )
-  const periodos: PeriodoMatricula[] = (periodosData?.data as PeriodoMatricula[]) ?? []
-
-  const periodoFiltroId = periodoActivo ? periodoActivo.periodo_id : (periodoSelId || undefined)
-
-  // Director del período seleccionado
-  const director = periodoFiltroId
-    ? detalles.directores.find((d) => d.periodo_id === periodoFiltroId)
-    : detalles.directores[0]
-
-  // Asignaciones del período seleccionado
-  const asignaciones = periodoFiltroId
-    ? detalles.asignaciones.filter((a) => a.periodo_id === periodoFiltroId)
-    : detalles.asignaciones
 
   // Agrupar asignaciones por profesor
   const porProfesor = asignaciones.reduce<
@@ -67,31 +61,23 @@ export function SeccionDocentes({ detalles, periodoActivo }: SeccionDocentesProp
         materias:         [],
       }
     }
-    acc[a.profesor_id].materias.push({ materia: a.materia, horas: a.horas_semanales })
+    acc[a.profesor_id].materias.push({ materia: a.materia, horas: a.horas_semanales ?? null })
     return acc
   }, {})
 
   const profesores = Object.values(porProfesor)
 
-  const selectCls = "h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+  if (cargando) {
+    return (
+      <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+        Cargando docentes…
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-5">
-
-      {/* Indicador de período filtrado */}
-      <select
-        value={periodoSelId}
-        onChange={(e) => setPeriodoSelId(e.target.value ? Number(e.target.value) : "")}
-        className={selectCls}
-      >
-        <option value="">Todos los períodos</option>
-        {periodos.map((p) => (
-          <option key={p.periodo_id} value={p.periodo_id}>
-            {p.anio}{p.descripcion ? ` — ${p.descripcion}` : ""}
-            {p.periodo_id === periodoActivo?.periodo_id ? " (activo)" : ""}
-          </option>
-        ))}
-      </select>
 
       {/* Director de grupo */}
       <div>
@@ -105,9 +91,6 @@ export function SeccionDocentes({ detalles, periodoActivo }: SeccionDocentesProp
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-foreground">{nombreCompleto(director)}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {director.periodo_descripcion ?? `Año ${director.anio}`}
-              </p>
             </div>
             <button
               onClick={() => router.push(`/dashboard/profesores/${director.profesor_id}/detalles`)}
