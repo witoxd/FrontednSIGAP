@@ -219,7 +219,7 @@ export function PasoPeriodo({ periodo: periodoInicial, onConfirmar }: PasoPeriod
       {diasRestantes <= 3 && diasRestantes > 0 && (
         <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 px-4 py-3">
           <AlertCircle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-          <p className="text-sm text-warning-foreground">
+          <p className="text-muted-sm text-warning-foreground">
             El proceso de inscripción <strong>{proceso.nombre}</strong> cierra en {diasRestantes} día{diasRestantes !== 1 ? "s" : ""}.
             Las matrículas no guardadas se perderán.
           </p>
