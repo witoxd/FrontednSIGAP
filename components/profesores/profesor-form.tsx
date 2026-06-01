@@ -14,7 +14,7 @@ import { toast } from "sonner"
 
 // ── Tipos internos ────────────────────────────────────────────────────────────
 
-interface ProfesorFormData {
+export interface ProfesorFormData {
   decreto_id:         number
   grado_escalafon_id: number
   sede:               string
@@ -28,13 +28,13 @@ interface ProfesorFormData {
   perfil_profesional: string
 }
 
-interface ContactoData {
+export interface ContactoData {
   tipo_contacto: "telefono" | "celular" | "email" | "direccion" | "otro"
   valor: string
   es_principal: boolean
 }
 
-interface ContactoEmergenciaData {
+export interface ContactoEmergenciaData {
   nombre: string
   parentesco: string
   telefono: string

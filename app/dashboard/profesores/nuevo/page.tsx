@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { ProfesorForm } from "@/components/profesores/profesor-form"
+import { ProfesorStepper } from "@/components/profesores/profesor-stepper"
 
 export default function NuevoProfesorPage() {
   return (
@@ -18,7 +18,7 @@ export default function NuevoProfesorPage() {
         <h1 className="text-2xl font-bold">Nuevo Profesor</h1>
       </div>
 
-      <ProfesorForm modo="crear" />
+      <ProfesorStepper modo="crear" />
     </div>
   )
 }

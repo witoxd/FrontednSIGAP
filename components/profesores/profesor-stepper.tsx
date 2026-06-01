@@ -1,0 +1,847 @@
+"use client"
+
+import React, { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Loader2, Check, Users, Briefcase, GraduationCap, Phone, AlertCircle, Plus, Trash2 } from "lucide-react"
+import { toast } from "sonner"
+import useSWR from "swr"
+
+import { PersonaForm, type PersonaFormData } from "@/components/personas/persona-form"
+import { ContactoManager } from "@/components/shared/contactos/contacto-manager"
+import { ArchivoUploader } from "@/components/shared/archivos/archivo-uploader"
+import { profesoresApi } from "@/lib/api/services/profesores"
+import { gradosEscalafonApi } from "@/lib/api/services/gradosEscalafon"
+import { decretosApi } from "@/lib/api/services/decretos"
+import { jornadasApi } from "@/lib/api/services/jornadas"
+import { swrFetcher } from "@/lib/api/fetcher"
+import type { ProfesorWitchPersonaDocumento, Persona, Jornada, Decreto, GradoEscalafon } from "@/lib/types"
+
+import type { ProfesorFormData, ContactoData, ContactoEmergenciaData } from "./profesor-form"
+
+// ── Constantes ────────────────────────────────────────────────────────────────
+
+type Paso = 0 | 1 | 2 | 3 | 4
+
+const PASOS = [
+  { label: "Datos personales" },
+  { label: "Info. laboral"    },
+  { label: "Formación"        },
+  { label: "Contactos"        },
+  { label: "Finalizar"        },
+]
+
+const TIPOS_CONTRATO = ["Provisional", "En propiedad", "OPS", "Hora cátedra", "Otro"]
+const TIPOS_CONTACTO = ["telefono", "celular", "email", "direccion", "otro"] as const
+
+// ── Helpers de UI ─────────────────────────────────────────────────────────────
+
+const inputClass =
+  "h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+
+function Campo({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-sm font-medium text-foreground">
+        {label}{required && <span className="text-destructive ml-0.5">*</span>}
+      </label>
+      {children}
+    </div>
+  )
+}
+
+// ── Helpers de datos ──────────────────────────────────────────────────────────
+
+function personaFormVacio(): PersonaFormData {
+  return {
+    nombres: "", apellido_paterno: "", apellido_materno: "",
+    tipo_documento_id: 0, numero_documento: "",
+    fecha_nacimiento: "", genero: "Masculino",
+    serial_registro_civil: "", grupo_sanguineo: "",
+    grupo_etnico: "", credo_religioso: "", lugar_nacimiento: "", expedida_en: "",
+  }
+}
+
+function profesorFormVacio(): ProfesorFormData {
+  return {
+    decreto_id: 0, grado_escalafon_id: 0,
+    sede: "", jornada_id: 0, tipo_contrato: "",
+    area: "", fecha_nombramiento: "", numero_resolucion: "",
+    titulo: "", posgrado: "", perfil_profesional: "",
+  }
+}
+
+function personaFromApi(data: ProfesorWitchPersonaDocumento): PersonaFormData {
+  const per = data.persona as any
+  return {
+    nombres:               per.nombres               ?? "",
+    apellido_paterno:      per.apellido_paterno       ?? "",
+    apellido_materno:      per.apellido_materno       ?? "",
+    tipo_documento_id:     per.tipo_documento?.tipo_documento_id ?? 0,
+    numero_documento:      per.numero_documento       ?? "",
+    fecha_nacimiento:      per.fecha_nacimiento?.split("T")[0] ?? "",
+    genero:                per.genero                 ?? "Masculino",
+    grupo_sanguineo:       per.grupo_sanguineo,
+    grupo_etnico:          per.grupo_etnico,
+    credo_religioso:       per.credo_religioso,
+    lugar_nacimiento:      per.lugar_nacimiento,
+    expedida_en:           per.expedida_en,
+    serial_registro_civil: per.serial_registro_civil,
+  }
+}
+
+function profesorFromApi(data: ProfesorWitchPersonaDocumento): ProfesorFormData {
+  const d = data.docente as any
+  return {
+    decreto_id:         d.decreto_id         ?? 0,
+    grado_escalafon_id: d.grado_escalafon_id ?? 0,
+    sede:               d.sede               ?? "",
+    jornada_id:         d.jornada_id         ?? 0,
+    tipo_contrato:      d.tipo_contrato      ?? "",
+    area:               d.area               ?? "",
+    fecha_nombramiento: d.fecha_nombramiento?.split?.("T")[0] ?? "",
+    numero_resolucion:  d.numero_resolucion  ?? "",
+    titulo:             d.titulo             ?? "",
+    posgrado:           d.posgrado           ?? "",
+    perfil_profesional: d.perfil_profesional ?? "",
+  }
+}
+
+function formatFechaCorta(iso: string): string {
+  return new Date(iso + "T12:00:00").toLocaleDateString("es-CO", {
+    day: "2-digit", month: "short", year: "numeric",
+  })
+}
+
+// ── Componente de resumen ─────────────────────────────────────────────────────
+
+function ResumenProfesor({
+  personaData, profesorData, contactos, emergencia, jornadas, decretos, gradosCatalogo,
+}: {
+  personaData:     PersonaFormData
+  profesorData:    ProfesorFormData
+  contactos:       ContactoData[]
+  emergencia:      ContactoEmergenciaData
+  jornadas:        Jornada[]
+  decretos:        Decreto[]
+  gradosCatalogo:  GradoEscalafon[]
+}) {
+  const jornadaLabel  = jornadas.find((j) => j.jornada_id === profesorData.jornada_id)?.nombre ?? "—"
+  const decretoLabel  = decretos.find((d) => d.decreto_id === profesorData.decreto_id)?.nombre ?? "—"
+  const gradoLabel    = gradosCatalogo.find((g) => g.grado_id === profesorData.grado_escalafon_id)?.codigo ?? "—"
+  const contactosOk   = contactos.filter((c) => c.valor.trim())
+
+  const filas: [string, string][] = [
+    ["Área",          profesorData.area            || "—"],
+    ["Sede",          profesorData.sede            || "—"],
+    ["Contrato",      profesorData.tipo_contrato   || "—"],
+    ["Jornada",       jornadaLabel],
+    ["Decreto",       decretoLabel],
+    ["Grado",         gradoLabel],
+    ["Resolución",    profesorData.numero_resolucion || "—"],
+    ["Nombramiento",  profesorData.fecha_nombramiento ? formatFechaCorta(profesorData.fecha_nombramiento) : "—"],
+  ]
+
+  return (
+    <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm space-y-3">
+      <div>
+        <p className="font-semibold text-foreground">
+          {[personaData.apellido_paterno, personaData.apellido_materno].filter(Boolean).join(" ")},{" "}
+          {personaData.nombres}
+        </p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Doc. {personaData.numero_documento}
+          {personaData.fecha_nacimiento && ` · Nacido: ${formatFechaCorta(personaData.fecha_nacimiento)}`}
+        </p>
+      </div>
+
+      <div className="border-t border-border pt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
+        {filas.map(([label, val]) => (
+          <React.Fragment key={label}>
+            <span className="text-muted-foreground">{label}:</span>
+            <span className="text-foreground">{val}</span>
+          </React.Fragment>
+        ))}
+      </div>
+
+      <div className="border-t border-border pt-3 text-xs text-muted-foreground">
+        {contactosOk.length} contacto(s) · 1 contacto de emergencia ({emergencia.nombre || "sin nombre"})
+      </div>
+    </div>
+  )
+}
+
+// ── Props ─────────────────────────────────────────────────────────────────────
+
+interface ProfesorStepperProps {
+  modo: "crear" | "editar"
+  profesorId?: number
+}
+
+// ── Componente principal ──────────────────────────────────────────────────────
+
+export function ProfesorStepper({ modo, profesorId }: ProfesorStepperProps) {
+  const router = useRouter()
+
+  // ── Navegación ────────────────────────────────────────────────────────────
+  const [pasoActivo, setPasoActivo] = useState<Paso>(0)
+  const [idInterno, setIdInterno] = useState<number | null>(profesorId ?? null)
+  const [personaIdInterno, setPersonaIdInterno] = useState<number | null>(null)
+
+  // Fases del paso final en modo crear
+  const [creadoExitoso, setCreadoExitoso] = useState(false)
+  const [hayTiposDocumento, setHayTiposDocumento] = useState<boolean | null>(null)
+
+  // ── Estado ────────────────────────────────────────────────────────────────
+  const [cargandoInicial, setCargandoInicial] = useState(modo === "editar")
+  const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // ── Datos del formulario ──────────────────────────────────────────────────
+  const [personaData, setPersonaData] = useState<PersonaFormData>(personaFormVacio())
+  const [profesorData, setProfesorData] = useState<ProfesorFormData>(profesorFormVacio())
+
+  const [contactos, setContactos] = useState<ContactoData[]>([
+    { tipo_contacto: "celular", valor: "", es_principal: true },
+  ])
+  const [emergencia, setEmergencia] = useState<ContactoEmergenciaData>({
+    nombre: "", parentesco: "", telefono: "", celular: "",
+  })
+
+  // ── Catálogos ─────────────────────────────────────────────────────────────
+  const [jornadas, setJornadas] = useState<Jornada[]>([])
+  const [decretos, setDecretos] = useState<Decreto[]>([])
+  const [gradosCatalogo, setGradosCatalogo] = useState<GradoEscalafon[]>([])
+  const [gradosFiltrados, setGradosFiltrados] = useState<GradoEscalafon[]>([])
+
+  useEffect(() => {
+    jornadasApi.getAll(100).then((res) => setJornadas(res.data ?? []))
+    decretosApi.getAll().then((res) => setDecretos((res.data as any)?.data ?? res.data ?? []))
+    gradosEscalafonApi.getAll().then((res) => setGradosCatalogo((res.data as any)?.data ?? res.data ?? []))
+  }, [])
+
+  // ── Fetch de tipos de archivo (solo se activa tras crear) ─────────────────
+  const swrTiposKey = modo === "crear" && personaIdInterno
+    ? `/tipos-archivos/getByRol/profesor`
+    : null
+  const { data: tiposRes } = useSWR(swrTiposKey, swrFetcher)
+
+  useEffect(() => {
+    if (tiposRes !== undefined) {
+      const n = ((tiposRes as any)?.data as any[])?.filter((t: any) => t.activo !== false).length ?? 0
+      setHayTiposDocumento(n > 0)
+    }
+  }, [tiposRes])
+
+  // ── Carga inicial (modo editar) ───────────────────────────────────────────
+  useEffect(() => {
+    if (modo !== "editar" || !profesorId) return
+    async function cargar() {
+      try {
+        const res = await profesoresApi.getById(profesorId!)
+        const data = res.data as ProfesorWitchPersonaDocumento
+        const pf = profesorFromApi(data)
+        setPersonaData(personaFromApi(data))
+        setProfesorData(pf)
+        setPersonaIdInterno((data.persona as any).persona_id)
+        setIdInterno(data.profesor.profesor_id ?? null)
+        if (pf.decreto_id) {
+          gradosEscalafonApi.getByDecretoId(pf.decreto_id)
+            .then((res) => setGradosFiltrados((res.data as any)?.data ?? res.data ?? []))
+            .catch(() => {})
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error al cargar datos")
+      } finally {
+        setCargandoInicial(false)
+      }
+    }
+    cargar()
+  }, [modo, profesorId])
+
+  // ── Validaciones por paso ─────────────────────────────────────────────────
+
+  function validarPaso0(): string | null {
+    if (!personaData.nombres.trim())           return "El nombre es obligatorio"
+    if (!personaData.tipo_documento_id)        return "Selecciona un tipo de documento"
+    if (!personaData.numero_documento.trim())  return "El número de documento es obligatorio"
+    if (!personaData.fecha_nacimiento)         return "La fecha de nacimiento es obligatoria"
+    if (!["Masculino", "Femenino", "Otro"].includes(personaData.genero))
+      return "Selecciona un género válido"
+    return null
+  }
+
+  function validarPaso1(): string | null {
+    if (!profesorData.area.trim())              return "El área es obligatoria"
+    if (!profesorData.sede.trim())              return "La sede es obligatoria"
+    if (!profesorData.tipo_contrato.trim())     return "El tipo de contrato es obligatorio"
+    if (!profesorData.decreto_id)               return "Selecciona un decreto"
+    if (!profesorData.grado_escalafon_id)       return "Selecciona un grado de escalafón"
+    if (!profesorData.numero_resolucion.trim()) return "El número de resolución es obligatorio"
+    if (!profesorData.jornada_id)               return "Selecciona una jornada"
+    if (!profesorData.fecha_nombramiento)       return "La fecha de nombramiento es obligatoria"
+    return null
+  }
+
+  function validarPaso3(): string | null {
+    if (!contactos.filter((c) => c.valor.trim()).length)
+      return "Agrega al menos un contacto con valor"
+    if (!emergencia.nombre.trim())     return "El nombre del contacto de emergencia es obligatorio"
+    if (!emergencia.parentesco.trim()) return "El parentesco es obligatorio"
+    if (!emergencia.telefono.trim())   return "El teléfono del contacto de emergencia es obligatorio"
+    return null
+  }
+
+  // ── Helpers de contactos ──────────────────────────────────────────────────
+
+  function agregarContacto() {
+    setContactos((prev) => [...prev, { tipo_contacto: "telefono", valor: "", es_principal: false }])
+  }
+
+  function actualizarContacto(i: number, field: keyof ContactoData, value: any) {
+    setContactos((prev) => prev.map((c, idx) => idx === i ? { ...c, [field]: value } : c))
+  }
+
+  function eliminarContacto(i: number) {
+    setContactos((prev) => {
+      const next = prev.filter((_, idx) => idx !== i)
+      if (prev[i].es_principal && next.length > 0) next[0].es_principal = true
+      return next
+    })
+  }
+
+  function marcarPrincipal(i: number) {
+    setContactos((prev) => prev.map((c, idx) => ({ ...c, es_principal: idx === i })))
+  }
+
+  // ── Handler de navegación (modo crear) ───────────────────────────────────
+
+  function handleAvanzar(siguientePaso: Paso) {
+    setError(null)
+    if (modo === "crear") {
+      if (pasoActivo === 0) { const e = validarPaso0(); if (e) { setError(e); return } }
+      if (pasoActivo === 1) { const e = validarPaso1(); if (e) { setError(e); return } }
+      // paso 2 (formación): sin campos requeridos
+      if (pasoActivo === 3) { const e = validarPaso3(); if (e) { setError(e); return } }
+    }
+    setPasoActivo(siguientePaso)
+  }
+
+  // ── Guardar con PUT (modo editar) ─────────────────────────────────────────
+
+  async function handleGuardarYAvanzar(siguientePaso: Paso) {
+    if (modo !== "editar" || !idInterno) {
+      setPasoActivo(siguientePaso)
+      return
+    }
+    setGuardando(true)
+    setError(null)
+    try {
+      await profesoresApi.update(idInterno, {
+        persona:  personaData as Partial<Persona>,
+        profesor: profesorData,
+      } as any)
+      toast.success("Datos actualizados")
+      setPasoActivo(siguientePaso)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al guardar")
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  // ── Crear profesor (modo crear, paso 4) ───────────────────────────────────
+
+  async function handleCrear() {
+    setGuardando(true)
+    setError(null)
+    try {
+      const res = await profesoresApi.create({
+        persona:             personaData as Persona,
+        profesor:            profesorData,
+        contactos:           contactos.filter((c) => c.valor.trim()),
+        contacto_emergencia: {
+          nombre:     emergencia.nombre,
+          parentesco: emergencia.parentesco,
+          telefono:   emergencia.telefono,
+          celular:    emergencia.celular || null,
+        },
+      } as any)
+
+      const data = res.data as any
+      setPersonaIdInterno(data.persona?.persona_id ?? null)
+      setIdInterno(data.profesor?.profesor_id ?? null)
+      setCreadoExitoso(true)
+      toast.success("Profesor creado exitosamente")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al crear el profesor")
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  // ── Render: carga inicial ─────────────────────────────────────────────────
+
+  if (cargandoInicial) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  // ── Render principal ──────────────────────────────────────────────────────
+
+  return (
+    <div className="space-y-8">
+
+      {/* ── Barra de pasos ── */}
+      <nav aria-label="Pasos del formulario">
+        <ol className="flex items-center gap-0">
+          {PASOS.map((paso, idx) => {
+            const activo     = pasoActivo === idx
+            const completado = pasoActivo > idx
+
+            return (
+              <li key={idx} className="flex items-center flex-1 last:flex-none">
+                <button
+                  type="button"
+                  onClick={() => setPasoActivo(idx as Paso)}
+                  className={`flex items-center gap-2 text-sm font-medium transition-colors
+                    ${activo     ? "text-primary"    : ""}
+                    ${completado && !activo ? "text-success" : ""}
+                    ${!activo && !completado ? "text-muted-foreground hover:text-foreground" : ""}
+                  `}
+                >
+                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold border-2 transition-colors
+                    ${activo ? "border-primary bg-primary text-primary-foreground" : ""}
+                    ${completado && !activo ? "border-success bg-success text-success-foreground" : ""}
+                    ${!activo && !completado ? "border-muted-foreground text-muted-foreground" : ""}
+                  `}>
+                    {completado && !activo ? <Check className="h-3.5 w-3.5" /> : idx + 1}
+                  </span>
+                  <span className="hidden sm:inline">{paso.label}</span>
+                </button>
+                {idx < PASOS.length - 1 && (
+                  <div className={`h-px flex-1 mx-3 transition-colors ${completado ? "bg-success" : "bg-border"}`} />
+                )}
+              </li>
+            )
+          })}
+        </ol>
+      </nav>
+
+      {/* ── Error global ── */}
+      {error && (
+        <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3">
+          <p className="text-sm text-destructive">{error}</p>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          PASO 0 — Datos personales
+      ══════════════════════════════════════════════════════════════════════ */}
+      {pasoActivo === 0 && (
+        <div className="space-y-6">
+          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-base font-semibold">Datos personales</h2>
+            </div>
+            <PersonaForm
+              data={personaData}
+              onChange={setPersonaData}
+              disabled={guardando}
+              allowSearch={modo === "crear"}
+            />
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => modo === "crear" ? handleAvanzar(1) : handleGuardarYAvanzar(1)}
+              disabled={guardando}
+              className="flex items-center gap-2 h-10 px-6 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            >
+              {guardando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Siguiente →"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          PASO 1 — Información laboral
+      ══════════════════════════════════════════════════════════════════════ */}
+      {pasoActivo === 1 && (
+        <div className="space-y-6">
+          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-base font-semibold">Información laboral</h2>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Campo label="Área" required>
+                <input required disabled={guardando} value={profesorData.area}
+                  onChange={(e) => setProfesorData((p) => ({ ...p, area: e.target.value }))}
+                  className={inputClass} placeholder="Ej: Matemáticas" />
+              </Campo>
+              <Campo label="Sede" required>
+                <input required disabled={guardando} value={profesorData.sede}
+                  onChange={(e) => setProfesorData((p) => ({ ...p, sede: e.target.value }))}
+                  className={inputClass} placeholder="Ej: Sede principal" />
+              </Campo>
+              <Campo label="Tipo de contrato" required>
+                <select required disabled={guardando} value={profesorData.tipo_contrato}
+                  onChange={(e) => setProfesorData((p) => ({ ...p, tipo_contrato: e.target.value }))}
+                  className={inputClass}>
+                  <option value="">Seleccionar…</option>
+                  {TIPOS_CONTRATO.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </Campo>
+              <Campo label="Decreto" required>
+                <select required disabled={guardando} value={profesorData.decreto_id || ""}
+                  onChange={(e) => {
+                    const id = Number(e.target.value)
+                    setGradosFiltrados(gradosCatalogo.filter((g) => g.decreto_id === id))
+                    setProfesorData((p) => ({ ...p, decreto_id: id, grado_escalafon_id: 0 }))
+                  }}
+                  className={inputClass}>
+                  <option value="">Seleccionar decreto…</option>
+                  {decretos.map((d) => <option key={d.decreto_id} value={d.decreto_id}>{d.nombre}</option>)}
+                </select>
+              </Campo>
+              <Campo label="Grado de escalafón" required>
+                <select required disabled={guardando || !profesorData.decreto_id}
+                  value={profesorData.grado_escalafon_id || ""}
+                  onChange={(e) => setProfesorData((p) => ({ ...p, grado_escalafon_id: Number(e.target.value) }))}
+                  className={inputClass}>
+                  <option value="">{profesorData.decreto_id ? "Seleccionar grado…" : "Primero seleccione un decreto"}</option>
+                  {gradosFiltrados.map((g) => (
+                    <option key={g.grado_id} value={g.grado_id}>
+                      {g.codigo}{g.descripcion ? ` — ${g.descripcion}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo label="N° de resolución" required>
+                <input required disabled={guardando} value={profesorData.numero_resolucion}
+                  onChange={(e) => setProfesorData((p) => ({ ...p, numero_resolucion: e.target.value }))}
+                  className={inputClass} placeholder="N° de resolución de nombramiento" />
+              </Campo>
+              <Campo label="Jornada" required>
+                <select required disabled={guardando} value={profesorData.jornada_id || ""}
+                  onChange={(e) => setProfesorData((p) => ({ ...p, jornada_id: Number(e.target.value) }))}
+                  className={inputClass}>
+                  <option value="">Seleccionar jornada…</option>
+                  {jornadas.map((j) => <option key={j.jornada_id} value={j.jornada_id}>{j.nombre}</option>)}
+                </select>
+              </Campo>
+              <Campo label="Fecha de nombramiento" required>
+                <input required type="date" disabled={guardando} value={profesorData.fecha_nombramiento}
+                  onChange={(e) => setProfesorData((p) => ({ ...p, fecha_nombramiento: e.target.value }))}
+                  className={inputClass} />
+              </Campo>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <button type="button" onClick={() => setPasoActivo(0)} disabled={guardando}
+              className="h-10 px-4 rounded-lg border border-border text-sm text-foreground hover:bg-muted disabled:opacity-50 transition-colors">
+              ← Anterior
+            </button>
+            <button type="button"
+              onClick={() => modo === "crear" ? handleAvanzar(2) : handleGuardarYAvanzar(2)}
+              disabled={guardando}
+              className="flex items-center gap-2 h-10 px-6 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
+              {guardando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Siguiente →"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          PASO 2 — Formación académica
+      ══════════════════════════════════════════════════════════════════════ */}
+      {pasoActivo === 2 && (
+        <div className="space-y-6">
+          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-base font-semibold">Formación académica</h2>
+              <span className="text-xs text-muted-foreground ml-1">(opcional)</span>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Campo label="Título profesional">
+                <input disabled={guardando} value={profesorData.titulo ?? ""}
+                  onChange={(e) => setProfesorData((p) => ({ ...p, titulo: e.target.value }))}
+                  className={inputClass} placeholder="Ej: Licenciado en Matemáticas" />
+              </Campo>
+              <Campo label="Posgrado">
+                <input disabled={guardando} value={profesorData.posgrado ?? ""}
+                  onChange={(e) => setProfesorData((p) => ({ ...p, posgrado: e.target.value }))}
+                  className={inputClass} placeholder="Especialización, Maestría…" />
+              </Campo>
+              <div className="sm:col-span-2">
+                <Campo label="Perfil profesional">
+                  <textarea disabled={guardando} rows={3}
+                    value={profesorData.perfil_profesional ?? ""}
+                    onChange={(e) => setProfesorData((p) => ({ ...p, perfil_profesional: e.target.value }))}
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 resize-none"
+                    placeholder="Breve descripción del perfil docente…" />
+                </Campo>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <button type="button" onClick={() => setPasoActivo(1)} disabled={guardando}
+              className="h-10 px-4 rounded-lg border border-border text-sm text-foreground hover:bg-muted disabled:opacity-50 transition-colors">
+              ← Anterior
+            </button>
+            <button type="button"
+              onClick={() => modo === "crear" ? handleAvanzar(3) : handleGuardarYAvanzar(3)}
+              disabled={guardando}
+              className="flex items-center gap-2 h-10 px-6 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
+              {guardando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Siguiente →"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          PASO 3 — Contactos
+          Modo crear: inputs directos (se envían junto al create)
+          Modo editar: ContactoManager independiente
+      ══════════════════════════════════════════════════════════════════════ */}
+      {pasoActivo === 3 && (
+        <div className="space-y-6">
+
+          {/* Contactos */}
+          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <Phone className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-base font-semibold">Contactos</h2>
+            </div>
+            {modo === "crear" ? (
+              <div className="flex flex-col gap-3">
+                {contactos.map((c, i) => (
+                  <div key={i} className="grid grid-cols-[1fr_2fr_auto_auto] gap-2 items-end">
+                    <div className="flex flex-col gap-1.5">
+                      {i === 0 && <label className="text-sm font-medium text-foreground">Tipo</label>}
+                      <select value={c.tipo_contacto} disabled={guardando}
+                        onChange={(e) => actualizarContacto(i, "tipo_contacto", e.target.value as any)}
+                        className={inputClass}>
+                        {TIPOS_CONTACTO.map((t) => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      {i === 0 && <label className="text-sm font-medium text-foreground">Valor</label>}
+                      <input value={c.valor} disabled={guardando}
+                        onChange={(e) => actualizarContacto(i, "valor", e.target.value)}
+                        className={inputClass} placeholder="Número / correo / dirección…" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      {i === 0 && <label className="text-sm font-medium text-foreground">Principal</label>}
+                      <div className="h-10 flex items-center justify-center">
+                        <input type="checkbox" checked={c.es_principal} disabled={guardando}
+                          onChange={() => marcarPrincipal(i)}
+                          className="h-4 w-4 rounded border-input" />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      {i === 0 && <label className="text-sm font-medium text-foreground">&nbsp;</label>}
+                      <button type="button" disabled={contactos.length === 1 || guardando}
+                        onClick={() => eliminarContacto(i)}
+                        className="h-10 w-10 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors disabled:opacity-30">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <button type="button" disabled={guardando} onClick={agregarContacto}
+                  className="flex items-center gap-1.5 self-start rounded-lg border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  <Plus className="h-3.5 w-3.5" /> Agregar otro contacto
+                </button>
+              </div>
+            ) : (
+              personaIdInterno && <ContactoManager personaId={personaIdInterno} />
+            )}
+          </div>
+
+          {/* Contacto de emergencia (solo en crear) */}
+          {modo === "crear" && (
+            <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                <h2 className="text-base font-semibold">Contacto de emergencia</h2>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Campo label="Nombre completo" required>
+                  <input required disabled={guardando} value={emergencia.nombre}
+                    onChange={(e) => setEmergencia((p) => ({ ...p, nombre: e.target.value }))}
+                    className={inputClass} placeholder="Nombre del familiar" />
+                </Campo>
+                <Campo label="Parentesco" required>
+                  <input required disabled={guardando} value={emergencia.parentesco}
+                    onChange={(e) => setEmergencia((p) => ({ ...p, parentesco: e.target.value }))}
+                    className={inputClass} placeholder="Madre, padre, cónyuge…" />
+                </Campo>
+                <Campo label="Teléfono" required>
+                  <input required disabled={guardando} value={emergencia.telefono}
+                    onChange={(e) => setEmergencia((p) => ({ ...p, telefono: e.target.value }))}
+                    className={inputClass} placeholder="Número de teléfono" />
+                </Campo>
+                <Campo label="Celular">
+                  <input disabled={guardando} value={emergencia.celular}
+                    onChange={(e) => setEmergencia((p) => ({ ...p, celular: e.target.value }))}
+                    className={inputClass} placeholder="Número de celular (opcional)" />
+                </Campo>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <button type="button" onClick={() => setPasoActivo(2)} disabled={guardando}
+              className="h-10 px-4 rounded-lg border border-border text-sm text-foreground hover:bg-muted disabled:opacity-50 transition-colors">
+              ← Anterior
+            </button>
+            <button type="button"
+              onClick={() => modo === "crear" ? handleAvanzar(4) : setPasoActivo(4)}
+              disabled={guardando}
+              className="flex items-center gap-2 h-10 px-6 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
+              {guardando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Siguiente →"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          PASO 4 — Finalizar
+          Modo crear: FASE A (resumen + crear) → FASE B (docs + finalizar)
+          Modo editar: ArchivoUploader directo
+      ══════════════════════════════════════════════════════════════════════ */}
+      {pasoActivo === 4 && (
+        <div className="space-y-6">
+
+          {/* ── MODO CREAR ── */}
+          {modo === "crear" && !creadoExitoso && (
+            <>
+              <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+                <h2 className="text-base font-semibold">Confirmar y crear</h2>
+                <p className="text-xs text-muted-foreground">
+                  Revisa los datos antes de crear el registro. Una vez creado, podrás editar cualquier campo.
+                </p>
+                <ResumenProfesor
+                  personaData={personaData}
+                  profesorData={profesorData}
+                  contactos={contactos}
+                  emergencia={emergencia}
+                  jornadas={jornadas}
+                  decretos={decretos}
+                  gradosCatalogo={gradosCatalogo}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <button type="button" onClick={() => setPasoActivo(3)} disabled={guardando}
+                  className="h-10 px-4 rounded-lg border border-border text-sm text-foreground hover:bg-muted disabled:opacity-50 transition-colors">
+                  ← Anterior
+                </button>
+                <button type="button" onClick={handleCrear} disabled={guardando}
+                  className="flex items-center gap-2 h-10 px-6 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
+                  {guardando
+                    ? <><Loader2 className="h-4 w-4 animate-spin" /> Creando…</>
+                    : "Crear profesor →"
+                  }
+                </button>
+              </div>
+            </>
+          )}
+
+          {modo === "crear" && creadoExitoso && (
+            <>
+              <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+                <div className="flex items-center gap-2 text-success">
+                  <Check className="h-5 w-5" />
+                  <h2 className="text-base font-semibold text-foreground">Profesor creado correctamente</h2>
+                </div>
+                <div className="border-t border-border pt-4">
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Documentos del profesor</h3>
+                  {hayTiposDocumento === null && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Verificando documentos requeridos…
+                    </div>
+                  )}
+                  {hayTiposDocumento === true && personaIdInterno && (
+                    <ArchivoUploader
+                      persona_id={personaIdInterno}
+                      contexto="profesor"
+                      onSuccess={() => toast.success("Documentos guardados correctamente")}
+                      onError={(err) => toast.error(err)}
+                    />
+                  )}
+                  {hayTiposDocumento === false && (
+                    <p className="text-sm text-muted-foreground">
+                      No hay tipos de documentos configurados para profesores. Puedes continuar.
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <button type="button" onClick={() => router.push("/dashboard/profesores")}
+                  className="h-10 px-4 rounded-lg border border-border text-sm text-foreground hover:bg-muted transition-colors">
+                  Volver a la lista
+                </button>
+                {idInterno && (
+                  <button type="button"
+                    onClick={() => router.push(`/dashboard/profesores/${idInterno}/detalles`)}
+                    className="h-10 px-5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+                    Ver perfil del profesor →
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ── MODO EDITAR ── */}
+          {modo === "editar" && (
+            <>
+              <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+                <h2 className="text-base font-semibold">Documentos del profesor</h2>
+                {personaIdInterno ? (
+                  <ArchivoUploader
+                    persona_id={personaIdInterno}
+                    contexto="profesor"
+                    onSuccess={() => toast.success("Documentos guardados correctamente")}
+                    onError={(err) => toast.error(err)}
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Completa los pasos anteriores para habilitar la carga de documentos.
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <button type="button" onClick={() => setPasoActivo(3)}
+                  className="h-10 px-4 rounded-lg border border-border text-sm text-foreground hover:bg-muted transition-colors">
+                  ← Anterior
+                </button>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={() => router.push("/dashboard/profesores")}
+                    className="h-10 px-4 rounded-lg border border-border text-sm text-foreground hover:bg-muted transition-colors">
+                    Volver a la lista
+                  </button>
+                  {idInterno && (
+                    <button type="button"
+                      onClick={() => router.push(`/dashboard/profesores/${idInterno}/detalles`)}
+                      className="h-10 px-5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+                      Ver perfil del profesor →
+                    </button>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+        </div>
+      )}
+
+    </div>
+  )
+}
