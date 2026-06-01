@@ -290,7 +290,7 @@ export function UsuarioDrawer({ open, onClose, onSuccess }: UsuarioDrawerProps) 
                 <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3">
                   <UsuarioAvatar
                     nombres={personaSeleccionada.nombres}
-                    apellidoPaterno={personaSeleccionada.apellido_paterno}
+                    apellidoPaterno={personaSeleccionada.apellido_paterno ?? undefined}
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">

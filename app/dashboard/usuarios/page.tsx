@@ -5,7 +5,7 @@ import useSWR from "swr"
 import { toast } from "sonner"
 import {
   Shield, Users, UserCheck, UserX,
-  Search, X, Loader2, Plus,
+  Search, X, Loader2, Plus, KeyRound, ClipboardList,
 } from "lucide-react"
 import { swrFetcher } from "@/lib/api/fetcher"
 import { usersApi, type UsuarioDetalle } from "@/lib/api/services/users"
@@ -14,7 +14,11 @@ import { UsuarioAvatar } from "@/components/usuarios/usuario-avatar"
 import { UsuarioRolBadge } from "@/components/usuarios/usuario-rol-badge"
 import { UsuarioActionsMenu } from "@/components/usuarios/usuario-actions-menu"
 import { UsuarioDrawer } from "@/components/usuarios/usuario-drawer"
+import { SeccionRolesPermisos } from "@/components/usuarios/SeccionRolesPermisos"
+import { SeccionAuditoria } from "@/components/usuarios/SeccionAuditoria"
 import type { PaginatedApiResponse } from "@/lib/types"
+
+type Tab = "usuarios" | "roles-permisos" | "auditoria"
 
 const PAGE_SIZE = 20
 
@@ -52,6 +56,7 @@ function buildSWRKey(page: number, search: string) {
 export default function UsuariosPage() {
   const { user } = useAuth()
 
+  const [tab, setTab]             = useState<Tab>("usuarios")
   const [page, setPage]           = useState(0)
   const [search, setSearch]       = useState("")
   const [debouncedQ, setDebounced] = useState("")
@@ -141,42 +146,71 @@ export default function UsuariosPage() {
               </div>
             </div>
 
-            <button
-              onClick={() => setDrawerOpen(true)}
-              className="flex items-center gap-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2 text-sm font-medium text-white transition-colors shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              Nuevo usuario
-            </button>
+            {tab === "usuarios" && (
+              <button
+                onClick={() => setDrawerOpen(true)}
+                className="flex items-center gap-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2 text-sm font-medium text-white transition-colors shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                Nuevo usuario
+              </button>
+            )}
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-3">
-            <StatCard
-              label="Total"
-              value={total}
-              icon={<Users className="w-4 h-4" />}
-              accent="border-zinc-600"
-            />
-            <StatCard
-              label="Activos"
-              value={activos}
-              icon={<UserCheck className="w-4 h-4" />}
-              accent="border-emerald-500"
-              note="en esta página"
-            />
-            <StatCard
-              label="Inactivos"
-              value={inactivos}
-              icon={<UserX className="w-4 h-4" />}
-              accent="border-red-500"
-              note="en esta página"
-            />
-          </div>
+          {/* Stats — solo en tab usuarios */}
+          {tab === "usuarios" && (
+            <div className="grid grid-cols-3 gap-3">
+              <StatCard
+                label="Total"
+                value={total}
+                icon={<Users className="w-4 h-4" />}
+                accent="border-zinc-600"
+              />
+              <StatCard
+                label="Activos"
+                value={activos}
+                icon={<UserCheck className="w-4 h-4" />}
+                accent="border-emerald-500"
+                note="en esta página"
+              />
+              <StatCard
+                label="Inactivos"
+                value={inactivos}
+                icon={<UserX className="w-4 h-4" />}
+                accent="border-red-500"
+                note="en esta página"
+              />
+            </div>
+          )}
         </div>
 
-        {/* ══ ZONA OPERATIVA — tabla ════════════════════════════════════════ */}
+        {/* ══ ZONA OPERATIVA ════════════════════════════════════════════════ */}
         <div className="rounded-xl border border-border bg-card flex flex-col">
+
+          {/* Barra de tabs */}
+          <div className="flex border-b border-border px-2 pt-1">
+            {([
+              { id: "usuarios",       label: "Usuarios",         icon: Users },
+              { id: "roles-permisos", label: "Roles y Permisos", icon: KeyRound },
+              { id: "auditoria",      label: "Auditoría",        icon: ClipboardList },
+            ] as { id: Tab; label: string; icon: React.ElementType }[]).map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setTab(id)}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                  tab === id
+                    ? "border-red-500 text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Tab: Usuarios ───────────────────────────────────────────── */}
+          {tab === "usuarios" && <>
 
           {/* Barra de búsqueda */}
           <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
@@ -329,6 +363,16 @@ export default function UsuariosPage() {
               </div>
             </div>
           )}
+
+          {/* fin tab usuarios */}
+          </>}
+
+          {/* ── Tab: Roles y Permisos ────────────────────────────────────── */}
+          {tab === "roles-permisos" && <SeccionRolesPermisos />}
+
+          {/* ── Tab: Auditoría ───────────────────────────────────────────── */}
+          {tab === "auditoria" && <SeccionAuditoria />}
+
         </div>
       </div>
 
