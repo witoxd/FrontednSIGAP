@@ -47,8 +47,8 @@ export interface TipoDocumento {
 export interface Persona {
   persona_id?: number
   nombres: string
-  apellido_paterno: string
-  apellido_materno?: string
+  apellido_paterno?: string | null
+  apellido_materno?: string | null
   tipo_documento_id: number
   numero_documento: string
   fecha_nacimiento: string
@@ -66,8 +66,8 @@ export interface PersonaWithTipoDocumentoJSON {
 export interface PersonaWithTipoDocumento {
   persona_id: number
   nombres: string
-  apellido_paterno: string
-  apellido_materno?: string
+  apellido_paterno?: string | null
+  apellido_materno?: string | null
   tipo_documento: TipoDocumento
   numero_documento: string
   fecha_nacimiento: string
@@ -234,7 +234,7 @@ export interface AcudienteDeEstudiante {
   persona: {
     persona_id:        number
     nombres:           string
-    apellido_paterno:  string
+    apellido_paterno?: string | null
     apellido_materno?: string | null
     numero_documento:  string
     tipo_documento?: {
@@ -255,8 +255,8 @@ export interface AcudienteDetalles {
     estudiante: {
       estudiante_id: number
       nombres: string
-      apellido_paterno: string
-      apellido_materno: string | null
+      apellido_paterno?: string | null
+      apellido_materno?: string | null
       numero_documento: string
     }
     relacion: {
@@ -502,7 +502,7 @@ export interface EstudianteDeCurso {
   periodo_id:       number
   periodo_descripcion?: string | null
   nombres:          string
-  apellido_paterno: string
+  apellido_paterno?: string | null
   apellido_materno?: string | null
   numero_documento?: string | null
   tipo_documento?:  string | null
@@ -573,7 +573,7 @@ export interface MatriculaDetalles {
   estudiante: {
     estudiante_id:     number
     nombres:           string
-    apellido_paterno:  string
+    apellido_paterno?: string | null
     apellido_materno?: string | null
     numero_documento:  string
     nombre_documento?: string | null
@@ -682,8 +682,28 @@ export interface CreateJornadaInput {
 
 export interface Role {
   role_id: number
-  nombre: "admin" | "profesor" | "estudiante" | "administrativo"
+  nombre: string
   descripcion?: string
+}
+
+export interface Permiso {
+  permiso_id: number
+  nombre: string
+  descripcion?: string | null
+  recurso: string
+  accion: "create" | "read" | "update" | "delete" | "manage"
+}
+
+export interface AuditoriaLog {
+  auditoria_id: number
+  tabla_nombre: string
+  accion: "CREATE" | "UPDATE" | "DELETE" | "LOGIN" | "LOGOUT"
+  usuario_id: number | null
+  fecha: string
+  detalle: Record<string, unknown> | null
+  username?: string | null
+  nombres?: string | null
+  apellido_paterno?: string | null
 }
 
 // ============================================================================
