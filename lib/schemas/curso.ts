@@ -22,7 +22,7 @@ export const CursoDetallesSchema = CursoSchema.extend({
     periodo_activo:      z.boolean().optional().nullable(),
     profesor_id:         z.number(),
     nombres:             z.string(),
-    apellido_paterno:    z.string(),
+    apellido_paterno:    z.string().optional().nullable(),
     apellido_materno:    z.string().optional().nullable(),
   })),
   asignaciones: z.array(z.object({
@@ -32,7 +32,7 @@ export const CursoDetallesSchema = CursoSchema.extend({
     horas_semanales:  z.number().optional().nullable(),
     profesor_id:      z.number(),
     nombres:          z.string(),
-    apellido_paterno: z.string(),
+    apellido_paterno: z.string().optional().nullable(),
     apellido_materno: z.string().optional().nullable(),
   })),
 })

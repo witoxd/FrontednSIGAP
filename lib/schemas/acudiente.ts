@@ -32,7 +32,7 @@ export const AcudienteDeEstudianteSchema = z.object({
   persona: z.object({
     persona_id: z.number(),
     nombres: z.string(),
-    apellido_paterno: z.string(),
+    apellido_paterno: z.string().optional().nullable(),
     apellido_materno: z.string().optional().nullable(),
     numero_documento: z.string(),
     tipo_documento: z.object({
@@ -51,8 +51,8 @@ export const AcudienteDetallesSchema = AcudienteWithPersonaSchema.extend({
     estudiante: z.object({
       estudiante_id: z.number(),
       nombres: z.string(),
-      apellido_paterno: z.string(),
-      apellido_materno: z.string().nullable(),
+      apellido_paterno: z.string().optional().nullable(),
+      apellido_materno: z.string().optional().nullable(),
       numero_documento: z.string(),
     }),
     relacion: z.object({

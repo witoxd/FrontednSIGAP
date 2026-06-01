@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 import { estudiantesApi }      from "@/lib/api/services/estudiantes"
 import { expedienteApi }       from "@/lib/api/services/expediente"
+import { egresadosApi }        from "@/lib/api/services/egresados"
 import { PersonaView }         from "@/components/personas/PersonaView"
 import { StatusBadge }         from "@/components/shared/status-badge"
 import FichaEstudianteView     from "@/components/forms/ficha/ficheroEstudiante/FichaEstudianteView"
@@ -393,10 +394,11 @@ export default function DetallesEstudiantePage() {
   const { hasRole }  = useAuth()
   const esAdmin      = hasRole("admin")
 
-  const [est,          setEst]          = useState<EstudianteWithPersonaDocumento | null>(null)
-  const [expediente,   setExpediente]   = useState<ExpedienteResponse | null>(null)
-  const [cargando,     setCargando]     = useState(true)
-  const [error,        setError]        = useState<string | null>(null)
+  const [est,           setEst]           = useState<EstudianteWithPersonaDocumento | null>(null)
+  const [expediente,    setExpediente]    = useState<ExpedienteResponse | null>(null)
+  const [fechaGrado,    setFechaGrado]    = useState<string | null>(null)
+  const [cargando,      setCargando]      = useState(true)
+  const [error,         setError]         = useState<string | null>(null)
   const [drawerAbierto, setDrawerAbierto] = useState(false)
 
   const cargarEstudiante = useCallback(async () => {
@@ -405,8 +407,19 @@ export default function DetallesEstudiantePage() {
         estudiantesApi.getById(estudianteId),
         expedienteApi.get(estudianteId),
       ])
-      setEst(estRes.data as unknown as EstudianteWithPersonaDocumento)
+      const estData = estRes.data as unknown as EstudianteWithPersonaDocumento
+      setEst(estData)
       setExpediente(expRes.data ?? null)
+
+      const estadoEfectivo = estData.estudiante.estado_efectivo ?? estData.estudiante.estado
+      if (estadoEfectivo === "egresado") {
+        try {
+          const egRes = await egresadosApi.getByEstudianteId(estudianteId)
+          setFechaGrado(egRes.data?.egresado?.fecha_grado ?? null)
+        } catch {
+          // No bloquea la carga si el registro de egresado no existe
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al cargar")
     } finally {
@@ -460,6 +473,9 @@ export default function DetallesEstudiantePage() {
           </dd>
         </div>
         <DatoFila label="Fecha de ingreso" valor={formatFecha(est.estudiante.fecha_ingreso as unknown as string)} />
+        {fechaGrado && (
+          <DatoFila label="Fecha de grado" valor={formatFecha(fechaGrado)} />
+        )}
       </dl>
 
       {/* Acudientes */}

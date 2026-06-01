@@ -77,7 +77,7 @@ export const MatriculaDetallesSchema = z.object({
   estudiante: z.object({
     estudiante_id:    z.number(),
     nombres:          z.string(),
-    apellido_paterno: z.string(),
+    apellido_paterno: z.string().optional().nullable(),
     apellido_materno: z.string().optional().nullable(),
     numero_documento: z.string(),
     nombre_documento: z.string().optional().nullable(),

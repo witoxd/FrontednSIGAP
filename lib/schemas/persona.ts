@@ -13,7 +13,7 @@ export const TipoDocumentoSchema = z.object({
 export const PersonaSchema = z.object({
   persona_id: z.number().optional(),
   nombres: z.string(),
-  apellido_paterno: z.string(),
+  apellido_paterno: nullToUndefined,
   apellido_materno: nullToUndefined,
   tipo_documento_id: z.number(),
   numero_documento: z.string(),
@@ -30,7 +30,7 @@ export const PersonaSchema = z.object({
 export const PersonaWithTipoDocumentoSchema = z.object({
   persona_id: z.number(),
   nombres: z.string(),
-  apellido_paterno: z.string(),
+  apellido_paterno: nullToUndefined,
   apellido_materno: nullToUndefined,
   tipo_documento: TipoDocumentoSchema,
   numero_documento: z.string(),

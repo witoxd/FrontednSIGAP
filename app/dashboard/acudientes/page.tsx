@@ -78,14 +78,14 @@ export default function AcudientesPage() {
 
         {/* ── Header ── */}
         <div className="flex flex-col gap-4 px-6 py-5 border-b border-border">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h1 className="text-lg font-bold text-foreground">Acudientes</h1>
               <p className="text-xs text-muted-foreground mt-0.5">Gestión de acudientes registrados</p>
             </div>
             <button
               onClick={() => router.push("/dashboard/acudientes/nuevo")}
-              className="flex items-center gap-1.5 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
+              className="flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors sm:w-auto w-full"
             >
               <Plus className="w-3.5 h-3.5" />
               Nuevo acudiente
@@ -93,7 +93,7 @@ export default function AcudientesPage() {
           </div>
 
           {/* Buscador */}
-          <div className="relative w-72">
+          <div className="relative w-full sm:w-72">
             {isSearching
               ? <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground animate-spin" />
               : <Search  className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -127,7 +127,7 @@ export default function AcudientesPage() {
 
         {/* ── Cabecera columnas ── */}
         <div
-          className="grid bg-muted/40 border-b border-border px-6 py-2"
+          className="hidden md:grid bg-muted/40 border-b border-border px-6 py-2"
           style={{ gridTemplateColumns: "4px 44px 1fr 160px 120px 130px 72px" }}
         >
           {["", "#", "NOMBRE COMPLETO", "DOCUMENTO", "PARENTESCO", "OCUPACIÓN", ""].map((h, i) => (
@@ -160,67 +160,91 @@ export default function AcudientesPage() {
             const ocupacion  = (acu.acudiente as any).ocupacion  ?? "—"
 
             return (
-              <div
-                key={acu.acudiente.acudiente_id}
-                onMouseEnter={() => setHovRow(acu.acudiente.acudiente_id ?? null)}
-                onMouseLeave={() => setHovRow(null)}
-                className={`grid items-center px-6 border-b border-border/60 transition-colors cursor-pointer ${
-                  isHov ? "bg-muted/60" : i % 2 === 0 ? "bg-transparent" : "bg-muted/20"
-                }`}
-                style={{ gridTemplateColumns: "4px 44px 1fr 160px 120px 130px 72px", height: 46 }}
-              >
-                {/* Barra lateral dorada (color de marca, sin estado) */}
-                <div className={`w-1 h-7 rounded-sm bg-amber-500/60 transition-opacity ${isHov ? "opacity-100" : "opacity-40"}`} />
-
-                {/* Número */}
-                <span className="text-[10px] text-muted-foreground/40 font-mono text-center">
-                  {String(page * PAGE_SIZE + i + 1).padStart(2, "0")}
-                </span>
-
-                {/* Avatar + nombre */}
-                <div className="flex items-center gap-2.5 pl-2 min-w-0">
-                  <div className="w-7 h-7 rounded-md shrink-0 flex items-center justify-center text-xs font-bold bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
-                    {inicial}
-                  </div>
-                  <span className="text-sm truncate">
-                    <strong className="font-semibold text-foreground">{acu.persona.apellido_paterno ?? ""}</strong>
-                    {acu.persona.apellido_materno ? ` ${acu.persona.apellido_materno}` : ""}
-                    {", "}
-                    <span className="text-muted-foreground">{acu.persona.nombres ?? ""}</span>
+              <div key={acu.acudiente.acudiente_id} className="border-b border-border/60">
+                {/* ── Fila desktop ── */}
+                <div
+                  onMouseEnter={() => setHovRow(acu.acudiente.acudiente_id ?? null)}
+                  onMouseLeave={() => setHovRow(null)}
+                  className={`hidden md:grid items-center px-6 transition-colors cursor-pointer ${
+                    isHov ? "bg-muted/60" : i % 2 === 0 ? "bg-transparent" : "bg-muted/20"
+                  }`}
+                  style={{ gridTemplateColumns: "4px 44px 1fr 160px 120px 130px 72px", height: 46 }}
+                >
+                  <div className={`w-1 h-7 rounded-sm bg-amber-500/60 transition-opacity ${isHov ? "opacity-100" : "opacity-40"}`} />
+                  <span className="text-[10px] text-muted-foreground/40 font-mono text-center">
+                    {String(page * PAGE_SIZE + i + 1).padStart(2, "0")}
                   </span>
+                  <div className="flex items-center gap-2.5 pl-2 min-w-0">
+                    <div className="w-7 h-7 rounded-md shrink-0 flex items-center justify-center text-xs font-bold bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                      {inicial}
+                    </div>
+                    <span className="text-sm truncate">
+                      <strong className="font-semibold text-foreground">{acu.persona.apellido_paterno ?? ""}</strong>
+                      {acu.persona.apellido_materno ? ` ${acu.persona.apellido_materno}` : ""}
+                      {", "}
+                      <span className="text-muted-foreground">{acu.persona.nombres ?? ""}</span>
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground font-mono tracking-wide">
+                    {acu.persona.tipo_documento?.nombre_documento ?? "CC"} {acu.persona.numero_documento ?? "—"}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground capitalize">{parentesco}</span>
+                  <span className="text-[11px] text-muted-foreground truncate capitalize">{ocupacion}</span>
+                  <div className={`flex gap-1.5 justify-end transition-opacity ${isHov ? "opacity-100" : "opacity-0"}`}>
+                    <button
+                      onClick={() => router.push(`/dashboard/acudientes/${acu.acudiente.acudiente_id}/detalles`)}
+                      className="w-7 h-7 rounded-md flex items-center justify-center bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors"
+                      aria-label="Ver perfil"
+                    >
+                      <Eye className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => router.push(`/dashboard/acudientes/${acu.acudiente.acudiente_id}/editar`)}
+                      className="w-7 h-7 rounded-md flex items-center justify-center border border-border text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label="Editar"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Documento */}
-                <span className="text-[11px] text-muted-foreground font-mono tracking-wide">
-                  {acu.persona.tipo_documento?.nombre_documento ?? "CC"} {acu.persona.numero_documento ?? "—"}
-                </span>
-
-                {/* Parentesco */}
-                <span className="text-[11px] text-muted-foreground capitalize">
-                  {parentesco}
-                </span>
-
-                {/* Ocupación */}
-                <span className="text-[11px] text-muted-foreground truncate capitalize">
-                  {ocupacion}
-                </span>
-
-                {/* Acciones */}
-                <div className={`flex gap-1.5 justify-end transition-opacity ${isHov ? "opacity-100" : "opacity-0"}`}>
-                  <button
-                    onClick={() => router.push(`/dashboard/acudientes/${acu.acudiente.acudiente_id}/detalles`)}
-                    className="w-7 h-7 rounded-md flex items-center justify-center bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors"
-                    aria-label="Ver perfil"
-                  >
-                    <Eye className="w-3 h-3" />
-                  </button>
-                  <button
-                    onClick={() => router.push(`/dashboard/acudientes/${acu.acudiente.acudiente_id}/editar`)}
-                    className="w-7 h-7 rounded-md flex items-center justify-center border border-border text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors"
-                    aria-label="Editar"
-                  >
-                    <Pencil className="w-3 h-3" />
-                  </button>
+                {/* ── Card mobile ── */}
+                <div className={`flex md:hidden items-start gap-3 px-4 py-3 transition-colors ${i % 2 === 0 ? "bg-transparent" : "bg-muted/20"}`}>
+                  <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center text-sm font-bold bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                    {inicial}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground leading-tight">
+                      {acu.persona.apellido_paterno ?? ""}{acu.persona.apellido_materno ? ` ${acu.persona.apellido_materno}` : ""}, {acu.persona.nombres ?? ""}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+                      {acu.persona.tipo_documento?.nombre_documento ?? "CC"} {acu.persona.numero_documento ?? "—"}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      {parentesco !== "—" && (
+                        <span className="text-[10px] text-muted-foreground capitalize bg-muted px-2 py-0.5 rounded-full border border-border">{parentesco}</span>
+                      )}
+                      {ocupacion !== "—" && (
+                        <span className="text-[10px] text-muted-foreground capitalize">{ocupacion}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => router.push(`/dashboard/acudientes/${acu.acudiente.acudiente_id}/detalles`)}
+                      className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 border border-primary/20 text-primary active:bg-primary/20"
+                      aria-label="Ver perfil"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => router.push(`/dashboard/acudientes/${acu.acudiente.acudiente_id}/editar`)}
+                      className="w-9 h-9 rounded-lg flex items-center justify-center border border-border text-muted-foreground active:bg-muted"
+                      aria-label="Editar"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             )

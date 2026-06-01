@@ -19,6 +19,12 @@ export const egresadosApi = {
       api.get(`/egresados/getById/${id}`)
     ),
 
+  getByEstudianteId: (estudianteId: number) =>
+    validateWith(
+      ApiResponseSchema(EgresadoSchema),
+      api.get(`/egresados/byEstudiante/${estudianteId}`)
+    ),
+
   create: (data: CreateEgresadoInput) =>
     api.post<ApiResponse>("/egresados/create", data),
 
